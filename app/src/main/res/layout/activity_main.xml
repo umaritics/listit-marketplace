@@ -14,7 +14,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="List it"
+            android:text="@string/list_it"
             android:textColor="@color/white"
             android:textSize="56sp"
             android:layout_centerInParent="true"

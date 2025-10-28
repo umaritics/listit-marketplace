@@ -12,6 +12,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Listit">
         <activity
+            android:name=".OB_screen3"
+            android:exported="false" />
+        <activity
+            android:name=".OB_screen2"
+            android:exported="false" />
+        <activity
+            android:name=".OB_screen1"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

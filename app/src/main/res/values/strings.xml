@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Listit</string>
+    <string name="list_it">List it</string>
+    <string name="ob_text1">Buy, Sell, and Connect — All in One Place!</string>
+    <string name="ob_text2">Discover amazing deals near you or find the perfect buyer in just a few taps.</string>
+    <string name="next">Next</string>
+    <string name="ob2_text1">Got Something to Sell? Snap, Post, Done!</string>
+    <string name="ob2_text2">Upload photos, add details, and publish your ad instantly - it’s that simple.</string>
+    <string name="ob3_text1">Find What You Need, When You Need It.</string>
+    <string name="ob3_text2">Browse thousands of listings - from gadgets to vehicles - all posted by real people like you.</string>
 </resources>
