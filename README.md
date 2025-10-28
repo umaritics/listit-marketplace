@@ -30,7 +30,7 @@ Fonts	Google Fonts – Rubik
 
 Clone the repository
 
-git clone https://github.com/<your-username>/Listit.git
+git clone https://github.com/umaritics/listit-marketplace.git
 
 
 Open in Android Studio
