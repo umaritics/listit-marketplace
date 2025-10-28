@@ -25,23 +25,6 @@ IDE	Android Studio
 Database	Firebase / SQLite (planned)
 Version Control	Git & GitHub
 Fonts	Google Fonts – Rubik
-📂 Project Structure
-Listit/
-├── app/
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/example/listit/
-│   │   │   │   └── MainActivity.kt
-│   │   │   ├── res/
-│   │   │   │   ├── layout/
-│   │   │   │   ├── font/
-│   │   │   │   ├── drawable/
-│   │   │   │   └── values/
-│   │   │   └── AndroidManifest.xml
-│   ├── build.gradle.kts
-├── build.gradle.kts
-├── settings.gradle.kts
-└── .gitignore
 
 🧩 Setup Instructions
 
