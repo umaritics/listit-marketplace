@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Login_phone">
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white">
+        <ImageView
+            android:id="@+id/back_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentStart="true"
+            android:background="@drawable/back_arrow"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="20dp"/>
+        <ImageView
+            android:id="@+id/login_phone_pic"
+            android:layout_width="240dp"
+            android:layout_height="240dp"
+            android:layout_centerHorizontal="true"
+            android:layout_below="@id/back_button"
+            android:background="@drawable/login_phone_pic"
+            android:layout_marginTop="30dp"/>
+        <TextView
+            android:id="@+id/login_phone_text1"
+            android:layout_below="@+id/login_phone_pic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Login to your Account"
+            android:textColor="@color/orange"
+            android:textSize="26sp"
+            android:fontFamily="@font/rubik_regular"
+            android:layout_centerHorizontal="true"/>
+        <TextView
+            android:id="@+id/login_phone_text2"
+            android:layout_below="@+id/login_phone_text1"
+            android:layout_marginTop="40dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Enter your Phone Number"
+            android:textColor="@color/black"
+            android:textSize="16sp"
+            android:layout_centerInParent="true"
+            android:fontFamily="@font/rubik_bold"/>
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/phone_input"
+            android:layout_below="@id/login_phone_text2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="50dp"
+            android:layout_marginTop="20dp"
+            android:hint="Phone"
+            app:placeholderText="+92 3331234567"
+            app:boxBackgroundMode="outline"
+            app:boxStrokeColor="@color/grey"
+            app:startIconDrawable="@drawable/call"
+            app:startIconTint="@color/grey"
+            android:textColorHint="@color/grey"
+            app:boxCornerRadiusTopStart="10dp"
+            app:boxCornerRadiusTopEnd="10dp"
+            app:boxCornerRadiusBottomStart="10dp"
+            app:boxCornerRadiusBottomEnd="10dp"
+            app:boxStrokeWidth="1.5dp"
+            >
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/black"
+                android:paddingStart="40dp"
+                android:textSize="16dp"
+                android:inputType="textEmailAddress" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/otp_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Send OTP"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/orange"
+            android:layout_marginHorizontal="50dp"
+            app:cornerRadius="5dp"
+            android:layout_below="@id/phone_input"
+            android:layout_marginTop="30dp"
+            />
+
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_below="@id/otp_button"
+            android:layout_marginTop="20dp">
+            <TextView
+                android:id="@+id/login_phone_text3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/don_t_have_an_account"
+                android:fontFamily="@font/rubik_regular"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                android:layout_marginTop="10dp"
+                />
+            <TextView
+                android:id="@+id/login_phone_signup"
+                android:layout_toEndOf="@id/login_phone_text3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:text="Create Account"
+                android:fontFamily="@font/rubik_bold"
+                android:textColor="@color/orange"
+                android:textSize="12sp"
+                android:layout_marginTop="10dp"
+                />
+        </RelativeLayout>
+    </RelativeLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
