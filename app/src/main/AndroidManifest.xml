@@ -12,6 +12,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Listit">
         <activity
+            android:name=".Login_email"
+            android:exported="false" />
+        <activity
             android:name=".OB_screen3"
             android:exported="false" />
         <activity

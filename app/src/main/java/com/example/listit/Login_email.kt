@@ -1,22 +1,16 @@
 package com.example.listit
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
-class OB_screen3 : AppCompatActivity() {
+class Login_email : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_ob_screen3)
-        var next_button = findViewById<android.widget.Button>(R.id.next_button)
-
-        next_button.setOnClickListener {
-            startActivity(Intent(this, Login_email::class.java))
-        }
+        setContentView(R.layout.activity_login_email)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
