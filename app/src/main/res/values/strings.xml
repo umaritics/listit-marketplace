@@ -23,4 +23,8 @@
     <string name="verification_code">Verification Code</string>
     <string name="we_have_sent_the_verification">We have sent the verification</string>
     <string name="code_to_your_email_address">code to your email address</string>
+    <string name="full_name">Full Name</string>
+    <string name="phone_number2">Phone Number</string>
+    <string name="sign_up2">Sign Up</string>
+    <string name="already_have_an_account">Already have an account?</string>
 </resources>
