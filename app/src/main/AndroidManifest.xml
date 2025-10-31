@@ -16,6 +16,9 @@
             android:exported="false" />
         <activity
             android:name=".Otp_Enter"
+            android:exported = "false"/>
+        <activity
+            android:name=".Chat_message"
             android:exported="false" />
         <activity
             android:name=".Home"
