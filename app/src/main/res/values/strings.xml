@@ -21,6 +21,14 @@
     <string name="enter_email_and_phone_number_to_send_one_time_password">Enter email and phone number to send one time Password</string>
     <string name="continued">Continue</string>
     <string name="phone_number">Phone Number</string>
+    <string name="make_an_offer">Make an offer</string>
+    <string name="hi_sir">Hi Sir</string>
+    <string name="hey_how_can_i_help_you">Hey! How can i help you?</string>
+    <string name="last_seen_yesterday">Last seen Yesterday</string>
+    <string name="rs">Rs</string>
+    <string name="_3_650_000">3,650,000</string>
+    <string name="send_offer">Send Offer</string>
+    <string name="type_a_message">Type a Message...</string>
     <string name="verification_code">Verification Code</string>
     <string name="we_have_sent_the_verification">We have sent the verification</string>
     <string name="code_to_your_email_address">code to your email address</string>
