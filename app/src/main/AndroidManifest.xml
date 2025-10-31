@@ -12,13 +12,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Listit">
         <activity
+            android:name=".Otp_Success"
+            android:exported="false" />
+        <activity
+            android:name=".Otp_Enter"
+            android:exported="false" />
+        <activity
             android:name=".Home"
             android:exported="false" />
-
         <activity
             android:name=".otp_get"
             android:exported="false" />
-
         <activity
             android:name=".Login_phone"
             android:exported="false" />

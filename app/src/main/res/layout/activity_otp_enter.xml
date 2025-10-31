@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Otp_Enter">
+
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="15dp"
+        android:id="@+id/back_arrow"
+        android:src="@drawable/back_arrow_otp_vefication">
+
+    </ImageView>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignStart="@id/btnContinue"
+        android:layout_marginTop="30dp"
+        android:layout_below="@id/back_arrow"
+        android:id="@+id/verf"
+        android:text="@string/verification_code"
+        android:textSize="22sp"
+        android:textStyle="bold">
+    </TextView>
+
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
+        android:layout_alignStart="@id/btnContinue"
+        android:layout_below="@id/verf"
+        android:text="@string/we_have_sent_the_verification"
+        android:textSize="16sp"
+        android:alpha="0.7"
+        android:id="@+id/text1"
+        android:textColor="@color/grey">
+    </TextView>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="0dp"
+        android:layout_alignStart="@id/btnContinue"
+        android:layout_below="@id/text1"
+        android:text="@string/code_to_your_email_address"
+        android:textSize="16sp"
+        android:alpha="0.7"
+        android:id="@+id/text2"
+        android:textColor="@color/grey">
+    </TextView>
+
+
+    <LinearLayout
+        android:id="@+id/otpContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="45dp"
+        android:layout_below="@id/text2"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/otp1"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_margin="6dp"
+            android:gravity="center"
+            android:maxLength="1"
+            android:inputType="number"
+            android:textSize="22sp"
+            android:textColor="#000000"
+            android:background="@drawable/otp_box"/>
+
+        <EditText
+            android:id="@+id/otp2"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_margin="6dp"
+            android:gravity="center"
+            android:maxLength="1"
+            android:inputType="number"
+            android:textSize="22sp"
+            android:textColor="#000000"
+            android:background="@drawable/otp_box"/>
+
+        <EditText
+            android:id="@+id/otp3"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_margin="6dp"
+            android:gravity="center"
+            android:maxLength="1"
+            android:inputType="number"
+            android:textSize="22sp"
+            android:textColor="#000000"
+            android:background="@drawable/otp_box"/>
+
+        <EditText
+            android:id="@+id/otp4"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_margin="6dp"
+            android:gravity="center"
+            android:maxLength="1"
+            android:inputType="number"
+            android:textSize="22sp"
+            android:textColor="#000000"
+            android:background="@drawable/otp_box"/>
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnContinue"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_below="@id/otpContainer"
+        android:layout_margin="45dp"
+        android:text="@string/continued"
+        android:textColor="#FFFFFF"
+        android:textAllCaps="false"
+        app:backgroundTintMode="src_over"
+        app:backgroundTint="@null"
+        android:background="@drawable/btn_orange_gradient" />
+
+
+</RelativeLayout>
