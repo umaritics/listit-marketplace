@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="24dp">
+
+    <ImageView
+        android:id="@+id/otpImage"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"
+        android:src="@drawable/otp_img_1" />
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/otpImage"
+        android:layout_marginTop="36dp"
+        android:text="@string/otp_verification"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#000000" />
+
+    <!-- Subtitle -->
+    <TextView
+        android:id="@+id/tvSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tvTitle"
+        android:layout_marginTop="4dp"
+        android:text="@string/enter_email_and_phone_number_to_send_one_time_password"
+        android:textSize="14sp"
+        android:textColor="#999999" />
+
+    <!-- Email Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/emailLayout"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tvSubtitle"
+        android:layout_marginTop="45dp"
+        android:hint="@string/email"
+
+        app:boxStrokeColor="@color/orange"
+        app:hintTextColor="@color/orange"
+        app:boxStrokeWidthFocused="2dp"
+        app:endIconMode="custom"
+        app:boxCornerRadiusTopStart="15dp"
+        app:boxCornerRadiusTopEnd="15dp"
+        app:boxCornerRadiusBottomStart="15dp"
+        app:boxCornerRadiusBottomEnd="15dp"
+
+        app:endIconDrawable="@drawable/editicon_otp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="15dp"
+            android:paddingEnd="15dp"
+            android:inputType="textEmailAddress"
+            android:textColor="#000000"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Phone Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/phoneLayout"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/emailLayout"
+        android:layout_marginTop="40dp"
+        android:hint="@string/phone_number"
+        app:boxCornerRadiusTopStart="15dp"
+        app:boxCornerRadiusTopEnd="15dp"
+        app:boxCornerRadiusBottomStart="15dp"
+        app:boxCornerRadiusBottomEnd="15dp"
+        app:boxStrokeColor="@color/orange"
+        app:hintTextColor="@color/orange"
+        app:boxStrokeWidthFocused="2dp"
+        >
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="phone"
+            android:paddingStart="15dp"
+            android:paddingEnd="15dp"
+            android:textColor="#000000"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnContinue"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_below="@id/phoneLayout"
+        android:layout_marginTop="45dp"
+        android:text="@string/continued"
+        android:textColor="#FFFFFF"
+        android:textAllCaps="false"
+        app:backgroundTintMode="src_over"
+        app:backgroundTint="@null"
+        android:background="@drawable/btn_orange_gradient" />
+
+
+</RelativeLayout>

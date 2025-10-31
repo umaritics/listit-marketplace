@@ -15,6 +15,13 @@
             android:name=".Chat_message"
             android:exported="false" />
         <activity
+            android:name=".Home"
+            android:exported="false" />
+        <activity
+            android:name=".otp_get"
+            android:exported="false" />
+
+        <activity
             android:name=".Login_phone"
             android:exported="false" />
         <activity
