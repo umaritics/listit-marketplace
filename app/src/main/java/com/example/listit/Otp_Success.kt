@@ -6,36 +6,22 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.google.android.material.button.MaterialButton
 
-class otp_get : AppCompatActivity() {
+class Otp_Success : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_otp_get)
-
-
-
-
+        setContentView(R.layout.activity_otp_success)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(
-                systemBars.left + 24.dp,
-                systemBars.top + 24.dp,
-                systemBars.right + 24.dp,
-                systemBars.bottom + 24.dp
-            )
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-
         val cont = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnContinue)
         cont.setOnClickListener {
-            startActivity(Intent(this, Otp_Enter::class.java))
+            startActivity(Intent(this, Home::class.java))
         }
 
     }
-
-    val Int.dp get() = (this * resources.displayMetrics.density).toInt()
-
 }
