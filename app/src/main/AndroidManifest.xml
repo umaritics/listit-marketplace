@@ -12,6 +12,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Listit">
         <activity
+            android:name=".Chat_message"
+            android:exported="false" />
+        <activity
             android:name=".Home"
             android:exported="false" />
         <activity
