@@ -29,4 +29,7 @@
     <string name="_3_650_000">3,650,000</string>
     <string name="send_offer">Send Offer</string>
     <string name="type_a_message">Type a Message...</string>
+    <string name="verification_code">Verification Code</string>
+    <string name="we_have_sent_the_verification">We have sent the verification</string>
+    <string name="code_to_your_email_address">code to your email address</string>
 </resources>
