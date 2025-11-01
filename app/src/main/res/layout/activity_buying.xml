@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Buying">
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/buying_bg">
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/topbar"
+            android:background="@drawable/top_bar_back"
+            >
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                android:layout_centerHorizontal="true"
+                android:text="Listit"
+                />
+        </RelativeLayout>
+        <TextView
+            android:id="@+id/chats_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/topbar"
+            android:layout_marginTop="5dp"
+            android:text="Chats"
+            android:textSize="16dp"
+            android:fontFamily="@font/rubik_bold"
+            android:textAlignment="center"/>
+        <View
+            android:id="@+id/topDiv"
+            android:layout_below="@+id/chats_text"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@color/grey"/>
+        <LinearLayout
+            android:id="@+id/nav"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_below="@id/topDiv"
+            android:weightSum="3">
+            <RelativeLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                >
+                <TextView
+                    android:id="@+id/all_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginVertical="10dp"
+                    android:text="All"
+                    android:layout_centerInParent="true"
+                    android:fontFamily="@font/rubik_bold"/>
+                <View
+                    android:layout_below="@id/all_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="2dp"
+                    android:background="@color/light_grey"/>
+
+            </RelativeLayout>
+            <RelativeLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                >
+                <TextView
+                    android:id="@+id/buying_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginVertical="10dp"
+                    android:text="Buying"
+                    android:layout_centerInParent="true"
+                    android:fontFamily="@font/rubik_bold"/>
+                <View
+                    android:layout_below="@id/buying_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="2dp"
+                    android:background="@color/orange"/>
+
+            </RelativeLayout>
+            <RelativeLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                >
+                <TextView
+                    android:id="@+id/selling_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginVertical="10dp"
+                    android:text="Selling"
+                    android:layout_centerInParent="true"
+                    android:fontFamily="@font/rubik_bold"/>
+                <View
+                    android:layout_below="@id/selling_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="2dp"
+                    android:background="@color/light_grey"/>
+
+            </RelativeLayout>
+
+        </LinearLayout>
+        <RelativeLayout
+            android:id="@+id/chats_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/nav"
+            android:layout_above="@id/bottom_nav"
+            android:paddingVertical="10dp">
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/rounded_orange_border"
+                android:backgroundTint="@color/light_orange"
+                android:layout_marginHorizontal="10dp"
+                >
+                <ImageView
+                    android:id="@+id/user_pfp"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:background="@drawable/user_pfp"/>
+                <TextView
+                    android:id="@+id/username"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toRightOf="@id/user_pfp"
+                    android:layout_marginStart="20dp"
+                    android:text="Muhammad"
+                    android:fontFamily="@font/rubik_bold"
+                    android:textSize="16sp"
+                    android:textColor="@color/black"
+                    />
+                <TextView
+                    android:id="@+id/last_seen"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toRightOf="@id/user_pfp"
+                    android:layout_below="@id/username"
+                    android:text="Last seen yesterday"
+                    android:layout_marginStart="20dp"
+                    android:fontFamily="@font/rubik_regular"
+                    android:textColor="@color/grey"
+                    />
+
+            </RelativeLayout>
+
+        </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/bottom_nav"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="0dp"
+            android:background="#FFFFFF"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:weightSum="5">
+
+            <!-- Home -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="Home"
+                    android:src="@drawable/ic_home" />
+            </LinearLayout>
+
+            <!-- Chat -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="Chat"
+                    android:src="@drawable/ic_chat" />
+            </LinearLayout>
+
+            <!-- Add -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:contentDescription="Add"
+                    android:src="@drawable/ic_add_circle" />
+            </LinearLayout>
+
+            <!-- Favorite -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="Favorite"
+                    android:src="@drawable/ic_favorite" />
+            </LinearLayout>
+
+            <!-- Profile -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="Profile"
+                    android:src="@drawable/ic_profile" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </RelativeLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

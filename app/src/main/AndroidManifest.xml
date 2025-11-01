@@ -12,6 +12,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Listit">
         <activity
+            android:name=".selling"
+            android:exported="false" />
+        <activity
+            android:name=".Buying"
+            android:exported="false" />
+        <activity
             android:name=".Chat_offer"
             android:exported="false" />
         <activity
