@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".Buying">
+    tools:context=".selling">
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -86,7 +86,7 @@
                     android:layout_below="@id/buying_text"
                     android:layout_width="match_parent"
                     android:layout_height="2dp"
-                    android:background="@color/orange"/>
+                    android:background="@color/light_grey"/>
 
             </RelativeLayout>
             <RelativeLayout
@@ -106,7 +106,7 @@
                     android:layout_below="@id/selling_text"
                     android:layout_width="match_parent"
                     android:layout_height="2dp"
-                    android:background="@color/light_grey"/>
+                    android:background="@color/orange"/>
 
             </RelativeLayout>
 
@@ -179,39 +179,34 @@
             android:layout_above="@id/bottom_nav"
             android:paddingVertical="10dp">
             <RelativeLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/rounded_orange_border"
-                android:backgroundTint="@color/light_orange"
-                android:layout_marginHorizontal="10dp"
-                >
-                <ImageView
-                    android:id="@+id/user_pfp"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:background="@drawable/user_pfp"/>
+                android:layout_centerInParent="true">
                 <TextView
-                    android:id="@+id/username"
+                    android:id="@+id/selling_text1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_toRightOf="@id/user_pfp"
-                    android:layout_marginStart="20dp"
-                    android:text="Muhammad"
+                    android:text="You've got no messages so far!"
                     android:fontFamily="@font/rubik_bold"
-                    android:textSize="16sp"
-                    android:textColor="@color/black"
-                    />
+                    android:layout_centerHorizontal="true"/>
                 <TextView
-                    android:id="@+id/last_seen"
+                    android:id="@+id/selling_text2"
+                    android:layout_below="@+id/selling_text1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_toRightOf="@id/user_pfp"
-                    android:layout_below="@id/username"
-                    android:text="Last seen yesterday"
-                    android:layout_marginStart="20dp"
-                    android:fontFamily="@font/rubik_regular"
-                    android:textColor="@color/grey"
-                    />
+                    android:text="As soon as someone sends you a message, you'll see it here."
+                    android:fontFamily="@font/rubik_regular"/>
+                <com.google.android.material.button.MaterialButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/selling_text2"
+                    android:layout_centerHorizontal="true"
+                    android:text="Start Selling"
+                    app:cornerRadius="5dp"
+                    android:paddingHorizontal="30dp"
+                    android:backgroundTint="@color/orange"
+                    android:textColor="@color/white"
+                    android:fontFamily="@font/rubik_regular"/>
 
             </RelativeLayout>
 
