@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Otp_Success">
+
+    <ImageView
+        android:layout_width="250dp"
+        android:layout_height="200dp"
+        android:scaleType="centerInside"
+        android:layout_marginTop="200dp"
+        android:id="@+id/image"
+        android:layout_centerHorizontal="true"
+        android:src="@drawable/otp_success"
+        android:adjustViewBounds="true">
+    </ImageView>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnContinue"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_below="@id/image"
+        android:layout_margin="60dp"
+        android:text="@string/continued"
+        android:textColor="#FFFFFF"
+        android:textAllCaps="false"
+        app:backgroundTintMode="src_over"
+        app:backgroundTint="@null"
+        android:background="@drawable/btn_orange_gradient" />
+
+</RelativeLayout>
