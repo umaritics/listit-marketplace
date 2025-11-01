@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    tools:context=".ViewAd">
+  <ScrollView
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:orientation="vertical"
+      >
+    <RelativeLayout
+        android:id="@+id/ad_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- Main Property Image -->
+        <ImageView
+            android:id="@+id/property_image"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/apt_placeholder"
+            android:background="@drawable/rounded_corners" />
+
+        <!-- Favorite (heart) icon -->
+        <ImageView
+            android:id="@+id/back_icon"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_alignTop="@id/property_image"
+            android:layout_margin="10dp"
+            android:src="@drawable/ic_back_white"
+            android:background="@drawable/white_circle_bg"
+            android:padding="6dp" />
+
+        <!-- Camera + photo count overlay -->
+        <LinearLayout
+            android:id="@+id/photo_count_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@id/property_image"
+            android:layout_alignEnd="@id/property_image"
+            android:layout_margin="8dp"
+            android:background="@drawable/dark_round_bg"
+            android:orientation="horizontal"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="3dp">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_camera_white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1/3"
+                android:textColor="@android:color/white"
+                android:textSize="12sp"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
+
+        <!-- Price -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="5dp"
+            android:id="@+id/property_details"
+            android:layout_below="@id/property_image"
+            >
+        <TextView
+            android:id="@+id/property_price"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+
+            android:layout_marginTop="8dp"
+            android:text="Rs 65,000"
+            android:textColor="#FF6F00"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <!-- Title -->
+        <ImageView
+            android:id="@+id/loc_icon"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_below="@+id/property_title"
+            android:src="@drawable/icon_location"
+            android:padding="6dp" />
+        <TextView
+            android:id="@+id/property_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/property_price"
+            android:layout_marginTop="2dp"
+            android:text="Flat at PHA  -  G11/4 D-type, Block D-9"
+            android:textColor="#000000"
+            android:textSize="14sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+        <TextView
+            android:id="@+id/property_loc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/property_title"
+            android:layout_toEndOf="@id/loc_icon"
+            android:layout_marginTop="5dp"
+            android:text="G11 |Sector 1 |Islamabad"
+            android:textColor="#827A7A"
+            android:textSize="14sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+        <TextView
+            android:id="@+id/date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@+id/property_loc"
+            android:layout_marginEnd="2dp"
+            android:text="11/5/25"
+            android:textColor="#827A7A"
+            android:layout_alignParentRight="true"
+            android:textSize="14sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+        <ImageView
+            android:id="@+id/fav_icon"
+            android:layout_width="35dp"
+            android:layout_height="35dp"
+            android:layout_alignTop="@id/property_price"
+            android:layout_alignParentRight="true"
+            android:src="@drawable/ic_favorite"
+            android:padding="6dp" />
+        </RelativeLayout>
+        <LinearLayout
+            android:id="@+id/details_box"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/property_details"
+            android:layout_marginTop="12dp"
+            android:layout_marginHorizontal="16dp"
+            android:background="@drawable/details_box_bg"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <!-- Description Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Description"
+                android:textColor="#FF6F00"
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="2x Bedrooms\n2x Bathrooms\n1x Kitchen\n1x Store Room\n1x Balcony"
+                android:textColor="#000000"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Details Title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Details"
+                android:textColor="#FF6F00"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Table Layout for Condition and Category -->
+            <RelativeLayout
+                android:id="@+id/details_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/details_box_bg"
+                android:paddingVertical="4dp">
+
+                <!-- Condition Row -->
+                <TextView
+                    android:id="@+id/condition_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Condition"
+                    android:textStyle="bold"
+                    android:textColor="#FF6F00"
+                    android:padding="8dp"
+                    android:layout_alignParentStart="true" />
+
+                <TextView
+                    android:id="@+id/condition_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="New"
+                    android:textColor="#000000"
+                    android:padding="8dp"
+                    android:layout_alignBaseline="@id/condition_label"
+                    android:layout_alignParentEnd="true" />
+
+                <!-- Divider Line -->
+                <View
+                    android:id="@+id/divider_line"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_below="@id/condition_label"
+                    android:background="#E0E0E0" />
+
+                <!-- Category Row -->
+                <TextView
+                    android:id="@+id/category_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Category"
+                    android:textStyle="bold"
+                    android:textColor="#FF6F00"
+                    android:padding="8dp"
+                    android:layout_below="@id/divider_line"
+                    android:layout_alignParentStart="true" />
+
+                <TextView
+                    android:id="@+id/category_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Apartments"
+                    android:textColor="#000000"
+                    android:padding="8dp"
+                    android:layout_alignBaseline="@id/category_label"
+                    android:layout_alignParentEnd="true" />
+
+            </RelativeLayout>
+
+        </LinearLayout>
+        <!-- Posted By Section -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/details_box"
+            android:padding="12dp"
+            >
+        <LinearLayout
+            android:id="@+id/posted_by_box"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:padding="10dp"
+            android:background="@drawable/posted_by_bg"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/profile_image"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_profile_placeholder"
+                android:layout_marginEnd="10dp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Posted By"
+                    android:textColor="#6B4B2A"
+                    android:textStyle="bold"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Shahmeer Atif"
+                    android:textColor="#000000"
+                    android:textStyle="bold"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+
+        <!-- Call & Chat Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:layout_below="@id/posted_by_box"
+            android:gravity="center"
+            android:weightSum="2">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_call"
+                android:layout_width="0dp"
+                android:layout_height="55dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:text="Call"
+                android:textAllCaps="false"
+                android:textColor="#FF6F00"
+                android:textStyle="bold"
+                app:icon="@drawable/ic_call"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconTint="#FF6F00"
+                app:strokeColor="#FF6F00"
+                app:strokeWidth="2dp"
+                app:cornerRadius="10dp"
+                android:backgroundTint="#FFFFFF" />
+
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_chat"
+                android:layout_width="0dp"
+                android:layout_height="55dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="Chat"
+                android:textAllCaps="false"
+                android:textColor="#FF6F00"
+                android:textStyle="bold"
+                app:icon="@drawable/ic_chat"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconTint="#FF6F00"
+                app:strokeColor="#FF6F00"
+                app:strokeWidth="2dp"
+                app:cornerRadius="10dp"
+                android:backgroundTint="#FFFFFF" />
+
+        </LinearLayout>
+        </RelativeLayout>
+
+
+    </RelativeLayout>
+  </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
