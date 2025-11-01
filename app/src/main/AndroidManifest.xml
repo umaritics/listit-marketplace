@@ -12,7 +12,28 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Listit">
         <activity
+            android:name=".selling"
+            android:exported="false" />
+        <activity
+            android:name=".Buying"
+            android:exported="false" />
+        <activity
+            android:name=".Chat_offer"
+            android:exported="false" />
+        <activity
+            android:name=".Otp_Success"
+            android:exported="false" />
+        <activity
+            android:name=".Otp_Enter"
+            android:exported = "false"/>
+        <activity
+            android:name=".Chat_message"
+            android:exported="false" />
+        <activity
             android:name=".Home"
+            android:exported="false" />
+        <activity
+            android:name=".otp_get"
             android:exported="false" />
         <activity
             android:name=".Login_phone"

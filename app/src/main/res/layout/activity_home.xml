@@ -266,9 +266,10 @@
             android:layout_width="match_parent"
             android:layout_height="70dp"
             android:layout_alignParentBottom="true"
+            android:layout_marginBottom="0dp"
             android:background="#FFFFFF"
-            android:orientation="horizontal"
             android:gravity="center"
+            android:orientation="horizontal"
             android:weightSum="5">
 
             <!-- Home -->
@@ -282,8 +283,8 @@
                 <ImageView
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/ic_home"
-                    android:contentDescription="Home" />
+                    android:contentDescription="Home"
+                    android:src="@drawable/ic_home" />
             </LinearLayout>
 
             <!-- Chat -->
@@ -297,8 +298,8 @@
                 <ImageView
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/ic_chat"
-                    android:contentDescription="Chat" />
+                    android:contentDescription="Chat"
+                    android:src="@drawable/ic_chat" />
             </LinearLayout>
 
             <!-- Add -->
@@ -312,8 +313,8 @@
                 <ImageView
                     android:layout_width="36dp"
                     android:layout_height="36dp"
-                    android:src="@drawable/ic_add_circle"
-                    android:contentDescription="Add" />
+                    android:contentDescription="Add"
+                    android:src="@drawable/ic_add_circle" />
             </LinearLayout>
 
             <!-- Favorite -->
@@ -327,8 +328,8 @@
                 <ImageView
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/ic_favorite"
-                    android:contentDescription="Favorite" />
+                    android:contentDescription="Favorite"
+                    android:src="@drawable/ic_favorite" />
             </LinearLayout>
 
             <!-- Profile -->
@@ -342,8 +343,8 @@
                 <ImageView
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/ic_profile"
-                    android:contentDescription="Profile" />
+                    android:contentDescription="Profile"
+                    android:src="@drawable/ic_profile" />
             </LinearLayout>
 
         </LinearLayout>
