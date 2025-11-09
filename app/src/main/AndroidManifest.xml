@@ -20,6 +20,7 @@
         <activity
             android:name=".NotificationsActivity"
             android:name=".Profile"
+            android:name=".EditProfile"
             android:exported="false" />
         <activity
             android:name=".OtherAds"
