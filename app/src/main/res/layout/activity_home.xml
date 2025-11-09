@@ -336,6 +336,7 @@
                     android:id="@+id/fav_ic"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
+                    android:id="@+id/fav"
                     android:contentDescription="Favorite"
                     android:src="@drawable/ic_favorite" />
             </LinearLayout>
