@@ -12,6 +12,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Listit">
         <activity
+            android:name=".Profile"
+            android:exported="false" />
+        <activity
             android:name=".OtherAds"
             android:exported="false" />
         <activity
