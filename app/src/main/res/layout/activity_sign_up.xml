@@ -14,16 +14,16 @@
         android:background="@color/orange">
 
         <RelativeLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="-40dp"
             android:id="@+id/topPanel">
 
 
             <ImageView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="300dp"
                 android:adjustViewBounds="true"
-                android:layout_margin="-15dp"
                 android:id="@+id/signup1"
                 android:src="@drawable/signup1">
 
@@ -48,7 +48,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="50dp"
-            android:layout_marginTop="40dp"
+            android:layout_marginTop="25dp"
             android:hint="@string/full_name"
             app:startIconDrawable="@drawable/ep_user"
             app:boxBackgroundMode="filled"
@@ -83,7 +83,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="50dp"
-            android:layout_marginTop="40dp"
+            android:layout_marginTop="25dp"
             android:hint="@string/phone_number2"
             app:startIconDrawable="@drawable/group"
             app:boxBackgroundMode="filled"
@@ -118,7 +118,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="50dp"
-            android:layout_marginTop="40dp"
+            android:layout_marginTop="30dp"
             android:hint="@string/email"
             app:startIconDrawable="@drawable/vector"
             app:boxBackgroundMode="filled"
@@ -142,7 +142,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textFontWeight="550"
                 android:gravity="center"
-                android:inputType="number" />
+                android:inputType="textEmailAddress" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -153,7 +153,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="50dp"
-            android:layout_marginTop="40dp"
+            android:layout_marginTop="25dp"
             android:hint="@string/password"
             app:startIconDrawable="@drawable/icon"
             app:boxBackgroundMode="filled"
@@ -177,7 +177,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textFontWeight="550"
                 android:gravity="center"
-                android:inputType="text" />
+                android:inputType="textPassword" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -188,7 +188,7 @@
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
             android:layout_marginHorizontal="70dp"
-            android:layout_marginTop="70dp"
+            android:layout_marginTop="35dp"
             android:textStyle="bold"
             android:text="@string/sign_up2"
             android:fontFamily="sans-serif-medium"
@@ -205,7 +205,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
-            android:layout_marginTop="40dp"
+            android:layout_marginTop="15dp"
             android:layout_marginBottom="50dp"
             android:orientation="horizontal">
 

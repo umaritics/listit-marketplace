@@ -28,4 +28,19 @@
     <string name="phone_number2">Phone Number</string>
     <string name="sign_up2">Sign Up</string>
     <string name="already_have_an_account">Already have an account?</string>
+    <string name="hippie_van_1967_wow">Hippie Van 1967 Wow</string>
+    <string name="_2_min">2 min</string>
+    <string name="new_york">New York</string>
+    <string name="_440_00">$440.00</string>
+    <string name="car">Car</string>
+    <string name="vehicles">Vehicles</string>
+    <string name="_40">(40+)</string>
+    <string name="found_results">Found Results :</string>
+    <string name="mobile_phones">Mobile Phones</string>
+    <string name="furniture">Furniture</string>
+    <string name="listit">Listit</string>
+    <string name="sort_by">Sort By :</string>
+    <string name="lowest_price">Lowest Price</string>
+    <string name="filters_7">Filters (7)</string>
+    <string name="cars">Cars</string>
 </resources>

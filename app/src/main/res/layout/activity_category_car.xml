@@ -24,7 +24,7 @@
                 android:textStyle="bold"
                 android:textColor="@color/white"
                 android:layout_centerHorizontal="true"
-                android:text="Listit"
+                android:text="@string/listit"
                 />
         </RelativeLayout>
         <com.google.android.material.textfield.TextInputLayout
@@ -43,131 +43,174 @@
             app:boxStrokeColor="@android:color/transparent"
             app:boxStrokeWidth="0dp"
             app:hintEnabled="false"
-        app:startIconTint="#FF6F00"
-        app:startIconDrawable="@drawable/search_home"
-        app:endIconDrawable="@drawable/filter_home"
-        app:endIconMode="custom">
+            app:startIconTint="#FF6F00"
+            app:startIconDrawable="@drawable/search_home"
+            app:endIconDrawable="@drawable/settings_adjust"
+            app:endIconMinSize="30dp"
+            app:endIconScaleType="fitCenter"
+            app:endIconTint="@color/orange"
+            app:endIconMode="custom">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/search_input"
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/search_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:textColor="@color/orange"
+                android:hint="@string/car"
+                android:textColorHint="#FF6F00"
+                android:textCursorDrawable="@null"
+                android:paddingStart="8dp"
+                android:paddingEnd="12dp"/>
+        </com.google.android.material.textfield.TextInputLayout>
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text"
-            android:textColor="#FF6F00"
-            android:hint="Search"
-        android:textColorHint="#FF6F00"
-        android:textCursorDrawable="@null"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp" />
-    </com.google.android.material.textfield.TextInputLayout>
-        <LinearLayout
             android:id="@+id/category_bar"
             android:layout_below="@id/search_bar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:weightSum="4">
+            android:orientation="vertical"
+            android:padding="15dp">
 
-            <!-- Cars -->
+            <!-- TOP ROW: Filters Button + Chips -->
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
-                <ImageView
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:id="@+id/cars"
-                    android:background="@drawable/circle_bg_grey"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_car"/>
+                <!-- Filters button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFilters"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:text="@string/filters_7"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:paddingLeft="12dp"
+                    android:paddingRight="12dp"
+                    android:backgroundTint="#FF6C21"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:cornerRadius="50dp"
+                    app:icon="@drawable/settings_adjust"
+                    app:iconTint="#FFFFFF"
+                    app:iconGravity="textStart"
+                    app:iconPadding="6dp" />
+
+                <!-- Chip Group --><!-- Chip Group -->
+                <HorizontalScrollView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:scrollbars="none"
+                    android:layout_weight="1">
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chipGroupFilters"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:singleLine="true"
+                        app:chipSpacing="8dp">
+
+                        <com.google.android.material.chip.Chip
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/furniture"
+                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                            app:chipBackgroundColor="#E1E2EB"
+                            android:textColor="#000000"
+                            app:closeIconVisible="true" />
+
+                        <com.google.android.material.chip.Chip
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/mobile_phones"
+                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                            app:chipBackgroundColor="#E1E2EB"
+                            android:textColor="#000000"
+                            app:closeIconVisible="true" />
+
+                    </com.google.android.material.chip.ChipGroup>
+
+                </HorizontalScrollView>
+
+            </LinearLayout>
+
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/Results"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/found_results"
+                android:textSize="14sp"
+                android:layout_marginEnd="5dp"
+
+                android:textColor="#000000"
+                android:textStyle="normal" />
+
+                <TextView
+                    android:id="@+id/tvResults"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/vehicles"
+                    android:textSize="14sp"
+                    android:layout_marginEnd="5dp"
+                    android:textColor="#000000"
+                    android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:id="@+id/carsText"
-                    android:text="@string/cars"
-                    android:textColor="@color/black"
-                    android:textStyle="bold"
-                    android:layout_marginTop="6dp" />
+                    android:layout_marginTop="10dp"
+                    android:text="@string/_40"
+                    android:textSize="14sp"
+                    android:textColor="#000000"
+                    android:textStyle="normal" />
+
             </LinearLayout>
 
-            <!-- Mobile -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
 
-                <ImageView
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:background="@drawable/circle_bg_grey"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_mobile" />
+
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/tvSort"
+                android:orientation="horizontal">
+
+
+            <!-- Sort By -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/sort_by"
+                    android:textColor="#000000"
+                    android:layout_marginEnd="5dp"
+
+                    android:textSize="14sp"
+                    android:textStyle="normal" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Mobile"
-                    android:textColor="@color/black"
-                    android:textStyle="bold"
-                    android:layout_marginTop="6dp" />
+                    android:layout_marginTop="4dp"
+                    android:text="@string/lowest_price"
+                    android:textColor="#000000"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
             </LinearLayout>
 
-            <!-- Property -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <ImageView
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:background="@drawable/circle_bg_grey"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_property" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Property"
-                    android:textColor="@color/black"
-                    android:textStyle="bold"
-                    android:layout_marginTop="6dp" />
-            </LinearLayout>
-
-            <!-- Bikes -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <ImageView
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:background="@drawable/circle_bg_grey"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_bike"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Bikes"
-                    android:textColor="@color/black"
-                    android:textStyle="bold"
-                    android:layout_marginTop="6dp" />
-            </LinearLayout>
         </LinearLayout>
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -223,31 +266,31 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     >
-                <TextView
-                    android:id="@+id/post_title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Hippie Van 1967 Wow"
-                    android:textColor="#FF6F00"
-                    android:textStyle="bold"
-                    android:textSize="15sp" />
-                <TextView
-                    android:id="@+id/time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="2 min"
-                    android:layout_centerInParent="true"
-                    android:textColor="#FF6F00"
-                    android:textStyle="bold"
-                    android:layout_alignParentRight="true"
-                    android:textSize="10sp" />
+                    <TextView
+                        android:id="@+id/post_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/hippie_van_1967_wow"
+                        android:textColor="#FF6F00"
+                        android:textStyle="bold"
+                        android:textSize="15sp" />
+                    <TextView
+                        android:id="@+id/time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/_2_min"
+                        android:layout_centerInParent="true"
+                        android:textColor="#FF6F00"
+                        android:textStyle="bold"
+                        android:layout_alignParentEnd="true"
+                        android:textSize="11sp" />
                 </RelativeLayout>
 
                 <TextView
                     android:id="@+id/post_location"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="New York"
+                    android:text="@string/new_york"
                     android:textColor="#808080"
                     android:textSize="13sp" />
 
@@ -255,7 +298,7 @@
                     android:id="@+id/post_price"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="$440.00"
+                    android:text="@string/_440_00"
                     android:textColor="#FF6F00"
                     android:textStyle="bold"
                     android:textSize="15sp"
