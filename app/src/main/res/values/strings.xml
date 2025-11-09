@@ -92,4 +92,7 @@
     <string name="lowest_price">Lowest Price</string>
     <string name="filters_7">Filters (7)</string>
     <string name="cars">Cars</string>
+    <string name="notifications">Notifications</string>
+    <string name="go_to_settings">Go to Settings</string>
+    <string name="logout">Logout</string>
 </resources>
