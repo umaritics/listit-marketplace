@@ -3,6 +3,7 @@ package com.example.listit
 import android.content.Intent
 import android.os.Bundle
 import android.widget.ImageView
+import android.widget.LinearLayout
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -17,6 +18,16 @@ class Profile : AppCompatActivity() {
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
+        }
+        findViewById<LinearLayout>(R.id.settings).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+            finish()
+            overridePendingTransition(0, 0)
+        }
+        findViewById<ImageView>(R.id.notification_icon).setOnClickListener {
+            startActivity(Intent(this, NotificationsActivity::class.java))
+            finish()
+            overridePendingTransition(0, 0)
         }
         findViewById<ImageView>(R.id.home_ic).setOnClickListener {
             startActivity(Intent(this, Home::class.java))
