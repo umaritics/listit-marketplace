@@ -2,6 +2,7 @@ package com.example.listit
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -16,6 +17,12 @@ class Login_email : AppCompatActivity() {
         phone_button.setOnClickListener {
             startActivity(Intent(this, Login_phone::class.java))
         }
+
+        findViewById<TextView>(R.id.login_google_signup).setOnClickListener {
+            startActivity(Intent(this, SignUp::class.java))
+        }
+
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
