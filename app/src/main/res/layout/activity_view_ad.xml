@@ -302,6 +302,7 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:text="Call"
+                android:textSize="20sp"
                 android:textAllCaps="false"
                 android:textColor="#FF6F00"
                 android:textStyle="bold"
@@ -311,7 +312,7 @@
                 app:iconTint="#FF6F00"
                 app:strokeColor="#FF6F00"
                 app:strokeWidth="2dp"
-                app:cornerRadius="10dp"
+                app:cornerRadius="5dp"
                 android:backgroundTint="#FFFFFF" />
 
 
@@ -323,16 +324,16 @@
                 android:layout_marginStart="6dp"
                 android:text="Chat"
                 android:textAllCaps="false"
-                android:textColor="#FF6F00"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
                 android:textStyle="bold"
-                app:icon="@drawable/ic_chat"
+                app:icon="@drawable/ic_chat_black"
                 app:iconGravity="textStart"
                 app:iconPadding="8dp"
-                app:iconTint="#FF6F00"
                 app:strokeColor="#FF6F00"
                 app:strokeWidth="2dp"
-                app:cornerRadius="10dp"
-                android:backgroundTint="#FFFFFF" />
+                app:cornerRadius="5dp"
+                android:backgroundTint="#FF6F00" />
 
         </LinearLayout>
         </RelativeLayout>
