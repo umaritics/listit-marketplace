@@ -43,6 +43,13 @@
             android:name=".Chat_offer"
             android:exported="false" />
         <activity
+            android:name=".Category_Car"
+            android:exported="false" />
+
+        <activity
+            android:name=".SignUp"
+            android:exported="false" />
+        <activity
             android:name=".Otp_Success"
             android:exported="false" />
         <activity
