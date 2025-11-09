@@ -12,6 +12,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Listit">
         <activity
+            android:name=".SettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".NotificationsSettings_Activity"
+            android:exported="false" />
+        <activity
+            android:name=".NotificationsActivity"
+            android:name=".Profile"
             android:name=".EditProfile"
             android:exported="false" />
         <activity
@@ -45,7 +53,6 @@
         <activity
             android:name=".Category_Car"
             android:exported="false" />
-
         <activity
             android:name=".SignUp"
             android:exported="false" />
