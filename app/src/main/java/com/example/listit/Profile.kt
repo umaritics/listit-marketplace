@@ -21,17 +21,19 @@ class Profile : AppCompatActivity() {
         }
         findViewById<LinearLayout>(R.id.settings).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
-            finish()
             overridePendingTransition(0, 0)
         }
         findViewById<ImageView>(R.id.notification_icon).setOnClickListener {
             startActivity(Intent(this, NotificationsActivity::class.java))
-            finish()
             overridePendingTransition(0, 0)
         }
         findViewById<ImageView>(R.id.home_ic).setOnClickListener {
             startActivity(Intent(this, Home::class.java))
             finish()
+            overridePendingTransition(0, 0)
+        }
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_edit_profile).setOnClickListener {
+            startActivity(Intent(this, EditProfile::class.java))
             overridePendingTransition(0, 0)
         }
 
