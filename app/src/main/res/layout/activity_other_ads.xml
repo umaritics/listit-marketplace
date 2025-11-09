@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:id="@+id/main"
+    android:layout_height="match_parent"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".OtherAds"
+    android:background="#FFFFFF">
+
+    <!-- Header -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottom_nav"
+        android:paddingTop="12dp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        >
+    <TextView
+        android:id="@+id/tvHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Public Profile"
+        android:textColor="#FF6F00"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <!-- Profile Card -->
+    <RelativeLayout
+        android:id="@+id/profileCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tvHeader"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/rounded_orange_bg"
+        android:padding="12dp">
+
+        <!-- Profile Image -->
+        <ImageView
+            android:id="@+id/imgProfile"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:src="@drawable/ic_profile_placeholder"
+            android:scaleType="centerCrop"
+            android:layout_alignParentStart="true" />
+
+        <!-- Posted By Label -->
+        <TextView
+            android:id="@+id/tvPostedBy"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Posted By"
+            android:textColor="#888888"
+            android:textSize="12sp"
+            android:layout_toEndOf="@id/imgProfile"
+            android:layout_marginStart="8dp"
+            android:layout_alignTop="@id/imgProfile" />
+
+        <!-- User Name -->
+        <TextView
+            android:id="@+id/tvUserName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Shahmeer Atif"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:textSize="15sp"
+            android:layout_below="@id/tvPostedBy"
+            android:layout_toEndOf="@id/imgProfile"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="2dp" />
+
+        <!-- Published Ads Box -->
+        <LinearLayout
+            android:id="@+id/adsBox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/btn_bg_orange"
+            android:padding="6dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Published Ads"
+                android:textSize="11sp"
+                android:textColor="#000000"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/tvAdCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="3"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:gravity="center" />
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- Scrollable Ads List -->
+    <ScrollView
+        android:layout_below="@id/profileCard"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/rounded_card"
+        android:layout_marginTop="10dp">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+
+            android:padding="10dp"
+            android:layout_marginBottom="12dp">
+
+            <!-- Left Image -->
+            <ImageView
+                android:id="@+id/adImage"
+                android:layout_width="140dp"
+                android:layout_height="120dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/sample_image"
+                android:layout_alignParentStart="true"
+                android:layout_marginEnd="10dp"
+                android:layout_centerVertical="true" />
+
+            <!-- Title -->
+            <TextView
+                android:id="@+id/adTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_toEndOf="@id/adImage"
+                android:text="Grahame Jenkins"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#000000"
+                android:layout_marginTop="4dp" />
+
+            <!-- Status (Not Active) -->
+            <TextView
+                android:id="@+id/adStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Not Active"
+                android:textColor="#FF6F00"
+                android:textSize="13sp"
+                android:layout_alignParentEnd="true"
+                android:layout_alignBaseline="@id/adTitle" />
+
+            <!-- Location -->
+            <TextView
+                android:id="@+id/adLocation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Brooklyn"
+                android:textColor="#666666"
+                android:textSize="13sp"
+                android:layout_below="@id/adTitle"
+                android:layout_toEndOf="@id/adImage"
+                android:layout_marginTop="2dp" />
+
+            <!-- Price -->
+            <TextView
+                android:id="@+id/adPrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="$440.00"
+                android:textColor="#000000"
+                android:textStyle="bold"
+                android:textSize="15sp"
+                android:layout_below="@id/adLocation"
+                android:layout_toEndOf="@id/adImage"
+                android:layout_marginTop="4dp" />
+
+            <!-- Button Row -->
+            <LinearLayout
+                android:id="@+id/buttonContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/adPrice"
+                android:layout_toEndOf="@id/adImage"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRemove"
+                    android:layout_width="200dp"
+                    android:layout_height="wrap_content"
+                    android:text="View"
+                    android:textAllCaps="false"
+                    android:textColor="@color/orange"
+                    android:textSize="12sp"
+                    android:paddingHorizontal="16dp"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    app:strokeColor="@color/orange"
+                    app:strokeWidth="1dp"
+                    app:cornerRadius="8dp" />
+
+
+            </LinearLayout>
+
+        </RelativeLayout>
+
+    </ScrollView>
+    </RelativeLayout>
+    <LinearLayout
+        android:id="@+id/bottom_nav"
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="0dp"
+        android:background="#FFFFFF"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:weightSum="5">
+
+        <!-- Home -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:contentDescription="Home"
+                android:src="@drawable/ic_home" />
+        </LinearLayout>
+
+        <!-- Chat -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:contentDescription="Chat"
+                android:src="@drawable/ic_chat" />
+        </LinearLayout>
+
+        <!-- Add -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:contentDescription="Add"
+                android:src="@drawable/ic_add_circle" />
+        </LinearLayout>
+
+        <!-- Favorite -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:contentDescription="Favorite"
+                android:src="@drawable/ic_favorite" />
+        </LinearLayout>
+
+        <!-- Profile -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:contentDescription="Profile"
+                android:src="@drawable/ic_profile" />
+        </LinearLayout>
+
+    </LinearLayout>
+</RelativeLayout>

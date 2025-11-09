@@ -12,6 +12,32 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Listit">
         <activity
+            android:name=".OtherAds"
+            android:exported="false" />
+        <activity
+            android:name=".MyAds"
+            android:exported="false" />
+        <activity
+            android:name=".Filters"
+            android:exported="false" />
+        <activity
+            android:name=".PostAd"
+            android:exported="false" />
+        <activity
+            android:name=".ViewMyAd"
+            android:exported="false"
+            android:theme="@style/Theme.Listit" />
+        <activity
+            android:name=".ViewAd"
+            android:exported="false" />
+        <activity
+            android:name=".selling"
+            android:exported="false" />
+        <activity
+            android:name=".Buying"
+            android:exported="false" />
+        <activity
+            android:name=".Chat_offer"
             android:name=".Category_Car"
             android:exported="false" />
         <activity
