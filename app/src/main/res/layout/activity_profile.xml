@@ -137,6 +137,7 @@
         <!-- Item 2: Settings -->
         <LinearLayout
             android:orientation="horizontal"
+            android:id="@+id/settings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingVertical="12dp">

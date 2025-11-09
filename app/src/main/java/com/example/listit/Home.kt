@@ -32,7 +32,6 @@ class Home : AppCompatActivity() {
         }
         findViewById<LinearLayout>(R.id.category_bar).setOnClickListener {
             startActivity(Intent(this, Filters::class.java))
-            finish()
             overridePendingTransition(0, 0)
         }
         // Put inside onCreate() of each Activity
@@ -44,7 +43,6 @@ class Home : AppCompatActivity() {
 
         findViewById<ImageView>(R.id.chat_ic).setOnClickListener {
             startActivity(Intent(this, Buying::class.java))
-            finish()
             overridePendingTransition(0, 0)
         }
 
@@ -55,13 +53,11 @@ class Home : AppCompatActivity() {
 
         findViewById<ImageView>(R.id.fav_ic).setOnClickListener {
             startActivity(Intent(this, MyAds::class.java))
-            finish()
             overridePendingTransition(0, 0)
         }
 
         findViewById<ImageView>(R.id.prof_ic).setOnClickListener {
             startActivity(Intent(this, Profile::class.java))
-            finish()
             overridePendingTransition(0, 0)
         }
 
