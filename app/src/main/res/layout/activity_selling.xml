@@ -225,6 +225,7 @@
 
             <!-- Home -->
             <LinearLayout
+
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -232,6 +233,7 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/home_ic"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Home"
@@ -247,6 +249,7 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/chat_ic"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Chat"
@@ -262,6 +265,7 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/add_ic"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:contentDescription="Add"
@@ -277,6 +281,7 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/fav_ic"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Favorite"
@@ -292,6 +297,7 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/prof_ic"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Profile"
