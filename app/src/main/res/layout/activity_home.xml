@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
@@ -182,6 +182,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
+            android:id="@+id/ad"
             android:background="#FFFFFF"
             android:layout_below="@id/div"
             android:padding="8dp"
@@ -276,6 +277,7 @@
 
             <!-- Home -->
             <LinearLayout
+
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -283,6 +285,7 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/home_ic"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Home"
@@ -298,6 +301,7 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/chat_ic"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Chat"
@@ -313,6 +317,7 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/add_ic"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:contentDescription="Add"
@@ -328,6 +333,7 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/fav_ic"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:id="@+id/fav"
@@ -344,6 +350,7 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/prof_ic"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Profile"
@@ -354,4 +361,4 @@
 
     </RelativeLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</RelativeLayout>

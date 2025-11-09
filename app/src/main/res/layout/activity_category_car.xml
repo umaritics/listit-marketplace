@@ -311,13 +311,15 @@
             android:layout_width="match_parent"
             android:layout_height="70dp"
             android:layout_alignParentBottom="true"
+            android:layout_marginBottom="0dp"
             android:background="#FFFFFF"
-            android:orientation="horizontal"
             android:gravity="center"
+            android:orientation="horizontal"
             android:weightSum="5">
 
             <!-- Home -->
             <LinearLayout
+
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -325,10 +327,11 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/home_ic"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/ic_home"
-                    android:contentDescription="Home" />
+                    android:contentDescription="Home"
+                    android:src="@drawable/ic_home" />
             </LinearLayout>
 
             <!-- Chat -->
@@ -340,10 +343,11 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/chat_ic"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/ic_chat"
-                    android:contentDescription="Chat" />
+                    android:contentDescription="Chat"
+                    android:src="@drawable/ic_chat" />
             </LinearLayout>
 
             <!-- Add -->
@@ -355,10 +359,11 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/add_ic"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
-                    android:src="@drawable/ic_add_circle"
-                    android:contentDescription="Add" />
+                    android:contentDescription="Add"
+                    android:src="@drawable/ic_add_circle" />
             </LinearLayout>
 
             <!-- Favorite -->
@@ -370,10 +375,11 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/fav_ic"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/ic_favorite"
-                    android:contentDescription="Favorite" />
+                    android:contentDescription="Favorite"
+                    android:src="@drawable/ic_favorite" />
             </LinearLayout>
 
             <!-- Profile -->
@@ -385,10 +391,11 @@
                 android:orientation="vertical">
 
                 <ImageView
+                    android:id="@+id/prof_ic"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/ic_profile"
-                    android:contentDescription="Profile" />
+                    android:contentDescription="Profile"
+                    android:src="@drawable/ic_profile" />
             </LinearLayout>
 
         </LinearLayout>
