@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.firebase.messaging)
     implementation(libs.volley)
+    implementation("com.github.bumptech.glide:glide:4.16.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

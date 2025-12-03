@@ -95,4 +95,18 @@
     <string name="notifications">Notifications</string>
     <string name="go_to_settings">Go to Settings</string>
     <string name="logout">Logout</string>
+    <string-array name="categories_array">
+        <item>Select Category</item>
+        <item>Mobiles &amp; Tablets</item>
+        <item>Vehicles - Cars</item>
+        <item>Vehicles - Motorcycles</item>
+        <item>Vehicles - Parts</item>
+        <item>Property - For Sale</item>
+        <item>Property - For Rent</item>
+        <item>Electronics - Computers</item>
+        <item>Electronics - TV &amp; Audio</item>
+        <item>Furniture</item>
+        <item>Fashion</item>
+        <item>Services</item>
+    </string-array>
 </resources>

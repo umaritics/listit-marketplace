@@ -89,7 +89,7 @@
             </LinearLayout>
         </RelativeLayout>
 
-        <!-- Category -->
+        <!-- Category Dropdown (Spinner) -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -98,14 +98,31 @@
             android:textStyle="bold"
             android:textColor="#FF6F00" />
 
-        <EditText
-            android:id="@+id/et_category"
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/edittext_bg"
-            android:hint="Choose"
-            android:textSize="15sp"
-            android:padding="10dp" />
+            android:background="@drawable/edittext_bg">
+
+            <Spinner
+                android:id="@+id/spinner_category"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:background="@null"
+                android:entries="@array/categories_array"
+                android:spinnerMode="dialog"
+                android:paddingStart="10dp"
+                android:paddingEnd="40dp" />
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="12dp"
+                android:src="@android:drawable/arrow_down_float"
+                app:tint="#FF6F00" />
+
+        </RelativeLayout>
 
         <!-- Condition -->
         <TextView
@@ -200,6 +217,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Enter Price"
+                android:inputType="numberDecimal"
                 android:background="@android:color/transparent"
                 android:padding="10dp"
                 android:layout_toStartOf="@id/tv_rs" />
@@ -261,6 +279,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="+92  Your Phone Number"
+            android:inputType="phone"
             android:background="@drawable/edittext_bg"
             android:padding="10dp"
             android:layout_marginVertical="10dp" />
