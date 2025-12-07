@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "1004154604876",
-    "project_id": "listit-ad38d",
-    "storage_bucket": "listit-ad38d.firebasestorage.app"
+    "project_number": "237488157682",
+    "project_id": "listit-749b1",
+    "storage_bucket": "listit-749b1.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1004154604876:android:5618c637c409ef9be513e9",
+        "mobilesdk_app_id": "1:237488157682:android:4dcb79f52a4739ddb8316b",
         "android_client_info": {
           "package_name": "com.example.listit"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCpEtFDzp0MhayqTZ34ALwC_aH9fqswT2o"
+          "current_key": "AIzaSyASdU_Xnqo5KuL6xRDqlIKg0se8C-xPM-0"
         }
       ],
       "services": {

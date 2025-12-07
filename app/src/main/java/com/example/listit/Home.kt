@@ -4,17 +4,20 @@ import ListItDbHelper
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
+import android.speech.RecognizerIntent
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Base64
 import android.util.Log
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -24,16 +27,35 @@ import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Request
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.Locale
 
 class Home : AppCompatActivity() {
 
     private lateinit var dbHelper: ListItDbHelper
     private lateinit var adAdapter: AdAdapter
-    private val adList = ArrayList<Ad>()
+
+    // Two lists: one for display, one for backup (filtering)
+    private val displayedAdList = ArrayList<Ad>()
+    private val fullAdList = ArrayList<Ad>()
+
+    // VOICE SEARCH LAUNCHER
+    private val speechLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK && result.data != null) {
+            val spokenText: ArrayList<String> = result.data!!.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS) ?: arrayListOf()
+            if (spokenText.isNotEmpty()) {
+                val query = spokenText[0]
+                // Set text in search bar (Note: setText triggers TextWatcher)
+                findViewById<TextInputEditText>(R.id.search_input).setText(query)
+                // filterAds(query) // Removed direct search call as requested
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,20 +64,45 @@ class Home : AppCompatActivity() {
 
         dbHelper = ListItDbHelper(this)
 
-        // 1. Setup RecyclerView with GRID LAYOUT (2 Columns)
         val recyclerView = findViewById<RecyclerView>(R.id.rv_ads)
         recyclerView.layoutManager = GridLayoutManager(this, 2)
-        adAdapter = AdAdapter(adList)
+        adAdapter = AdAdapter(displayedAdList)
         recyclerView.adapter = adAdapter
 
-        // 2. Load Local Data Immediately (Offline First)
+        // Load Data
         loadAdsFromLocalDB()
 
-        // 3. Sync if Online
         if (isNetworkAvailable()) {
             syncAdsFromServer()
-            syncDirtyAdsToServer() // This now contains real upload logic
+            syncDirtyAdsToServer()
+            syncAllUsers()
         }
+
+        // --- SEARCH LOGIC ---
+        val searchLayout = findViewById<TextInputLayout>(R.id.search_bar)
+        val searchInput = findViewById<TextInputEditText>(R.id.search_input)
+
+        // 1. Voice Icon Click
+        searchLayout.setEndIconOnClickListener {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+            intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Say something (e.g. 'Toyota')")
+            try {
+                speechLauncher.launch(intent)
+            } catch (e: Exception) {
+                Toast.makeText(this, "Voice search not supported", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // 2. Text Typing
+        searchInput.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                // filterAds(s.toString()) // Commented out: Search logic to be implemented later
+            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
 
         setupNavigation()
 
@@ -66,8 +113,28 @@ class Home : AppCompatActivity() {
         }
     }
 
+    private fun filterAds(query: String) {
+        val filteredList = ArrayList<Ad>()
+
+        if (query.isEmpty()) {
+            filteredList.addAll(fullAdList)
+        } else {
+            val lowercaseQuery = query.lowercase(Locale.getDefault())
+            for (ad in fullAdList) {
+                // Filter by Title, Category, or Location
+                if (ad.title.lowercase(Locale.getDefault()).contains(lowercaseQuery) ||
+                    ad.location.lowercase(Locale.getDefault()).contains(lowercaseQuery)) {
+                    filteredList.add(ad)
+                }
+            }
+        }
+
+        // Update Adapter
+        adAdapter.updateList(filteredList)
+    }
+
     private fun loadAdsFromLocalDB() {
-        adList.clear()
+        fullAdList.clear()
         val db = dbHelper.readableDatabase
         val query = """
             SELECT a.ad_id, a.title, a.price, a.location_address, a.created_at, a.is_synced, i.image_url
@@ -88,12 +155,18 @@ class Home : AppCompatActivity() {
                     isSynced = cursor.getInt(5),
                     imagePath = cursor.getString(6)
                 )
-                adList.add(ad)
+                fullAdList.add(ad)
             } while (cursor.moveToNext())
         }
         cursor.close()
+
+        // Initial state: Display everything
+        displayedAdList.clear()
+        displayedAdList.addAll(fullAdList)
         adAdapter.notifyDataSetChanged()
     }
+
+    // ... (Keep syncAdsFromServer, syncDirtyAdsToServer, syncAllUsers, uploadSingleAd exactly as they were) ...
 
     private fun syncAdsFromServer() {
         val queue = Volley.newRequestQueue(this)
@@ -126,17 +199,20 @@ class Home : AppCompatActivity() {
                                         put("condition_type", obj.getString("condition_type"))
                                         put("location_address", obj.getString("location_address"))
                                         put("status", obj.getString("status"))
+                                        put("lat", obj.optDouble("lat", 0.0))
+                                        put("lng", obj.optDouble("lng", 0.0))
                                         put("is_synced", 1)
                                         put("created_at", obj.getString("created_at"))
                                     }
                                     db.insert(ListItDbHelper.TABLE_ADS, null, values)
 
-                                    val imgUrl = obj.optString("image_url", "")
-                                    if (imgUrl.isNotEmpty()) {
+                                    val imagesArray = obj.getJSONArray("images")
+                                    for (j in 0 until imagesArray.length()) {
+                                        val imgPath = imagesArray.getString(j)
                                         val imgValues = ContentValues().apply {
                                             put("ad_id", serverAdId)
-                                            put("image_url", imgUrl)
-                                            put("is_primary", 1)
+                                            put("image_url", imgPath)
+                                            put("is_primary", if (j == 0) 1 else 0)
                                         }
                                         db.insert(ListItDbHelper.TABLE_AD_IMAGES, null, imgValues)
                                     }
@@ -153,17 +229,13 @@ class Home : AppCompatActivity() {
         queue.add(request)
     }
 
-    // --- REAL UPLOAD LOGIC ---
     private fun syncDirtyAdsToServer() {
         val db = dbHelper.readableDatabase
-        // Find ads that are NOT synced yet
         val cursor = db.rawQuery("SELECT * FROM ads WHERE is_synced = 0", null)
 
         if (cursor.moveToFirst()) {
             val queue = Volley.newRequestQueue(this)
-
             do {
-                // Extract Data from Cursor
                 val adId = cursor.getInt(cursor.getColumnIndexOrThrow("ad_id"))
                 val userId = cursor.getInt(cursor.getColumnIndexOrThrow("user_id"))
                 val category = cursor.getString(cursor.getColumnIndexOrThrow("category"))
@@ -173,37 +245,31 @@ class Home : AppCompatActivity() {
                 val condition = cursor.getString(cursor.getColumnIndexOrThrow("condition_type"))
                 val location = cursor.getString(cursor.getColumnIndexOrThrow("location_address"))
 
-                // Fetch Images for this Ad
+                val lat = cursor.getDouble(cursor.getColumnIndexOrThrow("lat"))
+                val lng = cursor.getDouble(cursor.getColumnIndexOrThrow("lng"))
+
                 val imagePaths = ArrayList<String>()
                 val imgCursor = db.rawQuery("SELECT image_url FROM ad_images WHERE ad_id = ?", arrayOf(adId.toString()))
                 if (imgCursor.moveToFirst()) {
-                    do {
-                        imagePaths.add(imgCursor.getString(0))
-                    } while (imgCursor.moveToNext())
+                    do { imagePaths.add(imgCursor.getString(0)) } while (imgCursor.moveToNext())
                 }
                 imgCursor.close()
 
-                // Upload using Volley
-                uploadSingleAd(adId, userId, category, title, desc, price, condition, location, imagePaths, queue)
+                uploadSingleAd(adId, userId, category, title, desc, price, condition, location, lat, lng, imagePaths, queue)
 
             } while (cursor.moveToNext())
         }
         cursor.close()
     }
 
-    private fun uploadSingleAd(localAdId: Int, userId: Int, category: String, title: String, desc: String, price: Double, condition: String, location: String, imagePaths: ArrayList<String>, queue: com.android.volley.RequestQueue) {
-
+    private fun uploadSingleAd(localAdId: Int, userId: Int, category: String, title: String, desc: String, price: Double, condition: String, location: String, lat: Double, lng: Double, imagePaths: ArrayList<String>, queue: com.android.volley.RequestQueue) {
         val url = Constants.BASE_URL + "post_ad.php"
-
         val stringRequest = object : StringRequest(Request.Method.POST, url,
             { response ->
-                // On Success: Mark as Synced locally
                 if (response.contains("success")) {
                     val db = dbHelper.writableDatabase
                     val values = ContentValues().apply { put("is_synced", 1) }
                     db.update(ListItDbHelper.TABLE_ADS, values, "ad_id = ?", arrayOf(localAdId.toString()))
-                    // Reload to show checkmark or synced status if UI had one
-                    Log.d("Home", "Ad $localAdId synced successfully")
                 }
             },
             { error -> Log.e("Home", "Failed to sync ad $localAdId") }
@@ -217,8 +283,9 @@ class Home : AppCompatActivity() {
                 params["price"] = price.toString()
                 params["condition"] = condition
                 params["location"] = location
+                params["lat"] = lat.toString()
+                params["lng"] = lng.toString()
 
-                // Encode Images
                 val imagesJsonArray = JSONArray()
                 for (path in imagePaths) {
                     try {
@@ -227,7 +294,7 @@ class Home : AppCompatActivity() {
                             val bitmap = BitmapFactory.decodeFile(path)
                             if (bitmap != null) {
                                 val baos = ByteArrayOutputStream()
-                                bitmap.compress(Bitmap.CompressFormat.JPEG, 60, baos)
+                                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, baos)
                                 val base64 = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT)
                                 imagesJsonArray.put(base64)
                             }
@@ -238,9 +305,45 @@ class Home : AppCompatActivity() {
                 return params
             }
         }
-        // Long timeout for image upload
         stringRequest.retryPolicy = DefaultRetryPolicy(30000, 0, 1f)
         queue.add(stringRequest)
+    }
+
+    private fun syncAllUsers() {
+        val queue = Volley.newRequestQueue(this)
+        val url = Constants.BASE_URL + "get_users.php"
+
+        val request = StringRequest(Request.Method.GET, url,
+            { response ->
+                try {
+                    val jsonStartIndex = response.indexOf("{")
+                    if (jsonStartIndex != -1) {
+                        val cleanResponse = response.substring(jsonStartIndex)
+                        val json = JSONObject(cleanResponse)
+                        if (json.getString("status") == "success") {
+                            val usersArray = json.getJSONArray("data")
+                            val db = dbHelper.writableDatabase
+
+                            for (i in 0 until usersArray.length()) {
+                                val obj = usersArray.getJSONObject(i)
+                                val serverUserId = obj.getInt("user_id")
+
+                                val values = ContentValues().apply {
+                                    put("user_id", serverUserId)
+                                    put("full_name", obj.getString("full_name"))
+                                    put("email", obj.getString("email"))
+                                    put("phone_number", obj.getString("phone_number"))
+                                    put("profile_image_url", obj.getString("profile_image_url"))
+                                }
+                                db.insertWithOnConflict(ListItDbHelper.TABLE_USERS, null, values, android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE)
+                            }
+                        }
+                    }
+                } catch (e: Exception) { e.printStackTrace() }
+            },
+            { error -> Log.e("Home", "User Sync Error: ${error.message}") }
+        )
+        queue.add(request)
     }
 
     private fun setupNavigation() {

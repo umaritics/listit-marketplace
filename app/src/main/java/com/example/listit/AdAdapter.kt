@@ -1,5 +1,6 @@
 package com.example.listit
 
+import android.content.Intent
 import android.graphics.BitmapFactory
 import android.view.LayoutInflater
 import android.view.View
@@ -10,7 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import java.io.File
 
-class AdAdapter(private val adList: ArrayList<Ad>) : RecyclerView.Adapter<AdAdapter.AdViewHolder>() {
+class AdAdapter(private var adList: ArrayList<Ad>) : RecyclerView.Adapter<AdAdapter.AdViewHolder>() {
 
     class AdViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val image: ImageView = itemView.findViewById(R.id.post_image)
@@ -31,32 +32,36 @@ class AdAdapter(private val adList: ArrayList<Ad>) : RecyclerView.Adapter<AdAdap
         holder.title.text = ad.title
         holder.price.text = "Rs ${ad.price}"
         holder.location.text = ad.location
-        holder.time.text = ad.date.take(10) // Show only date part
+        holder.time.text = ad.date.take(10)
 
-        // --- SMART IMAGE LOADING ---
         val path = ad.imagePath ?: ""
 
         if (path.startsWith("/")) {
-            // It's a Local File (Offline created)
             val imgFile = File(path)
             if (imgFile.exists()) {
                 val bitmap = BitmapFactory.decodeFile(imgFile.absolutePath)
                 holder.image.setImageBitmap(bitmap)
             }
         } else if (path.isNotEmpty()) {
-            // It's a Server URL (Synced)
-            // If path is "uploads/...", append Base URL
             val fullUrl = if (path.startsWith("http")) path else Constants.BASE_URL + path
-
-            // Use Glide for efficient networking
-            Glide.with(holder.itemView.context)
-                .load(fullUrl)
-                .placeholder(R.drawable.sample_image)
-                .into(holder.image)
+            Glide.with(holder.itemView.context).load(fullUrl).placeholder(R.drawable.sample_image).into(holder.image)
         } else {
             holder.image.setImageResource(R.drawable.sample_image)
+        }
+
+        holder.itemView.setOnClickListener {
+            val context = holder.itemView.context
+            val intent = Intent(context, ViewAd::class.java)
+            intent.putExtra("AD_ID", ad.id)
+            context.startActivity(intent)
         }
     }
 
     override fun getItemCount(): Int = adList.size
+
+    // --- NEW: Helper to update list for Search/Voice ---
+    fun updateList(newList: ArrayList<Ad>) {
+        adList = newList
+        notifyDataSetChanged()
+    }
 }

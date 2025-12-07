@@ -28,7 +28,7 @@
                 android:text="Listit" />
         </RelativeLayout>
 
-        <!-- Search Bar -->
+        <!-- Search Bar with Voice Icon -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/search_bar"
             android:layout_below="@id/topbar"
@@ -46,7 +46,9 @@
             app:hintEnabled="false"
             app:startIconTint="#FF6F00"
             app:startIconDrawable="@drawable/search_home"
-            app:endIconDrawable="@drawable/filter_home"
+            app:endIconDrawable="@drawable/mic"
+            app:endIconTint="#FF6F00"
+            app:endIconScaleType="center"
             app:endIconMode="custom">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -55,7 +57,7 @@
                 android:layout_height="wrap_content"
                 android:inputType="text"
                 android:textColor="#FF6F00"
-                android:hint="Search"
+                android:hint="Search or say 'Car'..."
                 android:textColorHint="#FF6F00"
                 android:background="@null"
                 android:paddingStart="8dp"
@@ -169,7 +171,7 @@
             android:layout_below="@+id/category_bar"
             android:layout_marginTop="10dp" />
 
-        <!-- RECYCLER VIEW FOR ADS (Grid Logic applied in Kotlin) -->
+        <!-- RECYCLER VIEW FOR ADS -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_ads"
             android:layout_width="match_parent"
