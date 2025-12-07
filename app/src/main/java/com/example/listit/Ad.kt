@@ -5,9 +5,10 @@ data class Ad(
     val title: String,
     val price: Double,
     val location: String,
-    val category: String,   // Added for filtering
-    val condition: String,  // Added for filtering
+    val category: String,
+    val condition: String,
     val imagePath: String?,
     val date: String,
-    val isSynced: Int
+    val isSynced: Int,
+    var isSaved: Boolean = false // New Field
 )

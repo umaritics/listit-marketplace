@@ -37,7 +37,6 @@ class Login_email : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         dbHelper = ListItDbHelper(this)
 
-        // Auto-login if user is already authenticated
         if (auth.currentUser != null) {
             startActivity(Intent(this, Home::class.java))
             finish()
@@ -62,11 +61,9 @@ class Login_email : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            // 1. Authenticate with Firebase
             auth.signInWithEmailAndPassword(email, pass)
                 .addOnCompleteListener(this) { task ->
                     if (task.isSuccessful) {
-                        // 2. If Auth success, fetch profile data from MySQL
                         fetchUserDataFromMySQL(email)
                     } else {
                         Toast.makeText(this, "Login Failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
@@ -100,13 +97,36 @@ class Login_email : AppCompatActivity() {
                         val phone = data.getString("phone_number")
                         val serverRelativePath = data.optString("profile_image_url", "")
 
-                        // --- IMAGE DOWNLOAD LOGIC ---
+                        // 1. Save User Profile Logic
                         if (serverRelativePath.isNotEmpty()) {
-                            // Download in background, then save to DB
                             downloadAndSaveImage(mysqlId, fullName, email, phone, serverRelativePath)
                         } else {
-                            // No image, just save text data
                             saveToLocalDb(mysqlId, fullName, email, phone, "")
+                        }
+
+                        // 2. SAVE FETCHED HEARTS (Favorites)
+                        if (jsonResponse.has("saved_ads")) {
+                            val savedArray = jsonResponse.getJSONArray("saved_ads")
+                            val db = dbHelper.writableDatabase
+
+                            // Clear old saved ads to avoid stale data on re-login
+                            db.execSQL("DELETE FROM saved_ads WHERE user_id = $mysqlId AND is_synced = 1")
+
+                            for (i in 0 until savedArray.length()) {
+                                val adId = savedArray.getInt(i)
+                                val values = ContentValues().apply {
+                                    put("user_id", mysqlId)
+                                    put("ad_id", adId)
+                                    put("is_deleted", 0)
+                                    put("is_synced", 1) // It came from server, so it's synced
+                                    put("created_at", System.currentTimeMillis().toString())
+                                }
+                                db.insert(ListItDbHelper.TABLE_SAVED_ADS, null, values)
+                            }
+                        }
+
+                        // Delay navigation slightly if no image download to ensure DB write finishes
+                        if (serverRelativePath.isEmpty()) {
                             goToHome(fullName)
                         }
 
@@ -133,29 +153,22 @@ class Login_email : AppCompatActivity() {
         queue.add(stringRequest)
     }
 
-    // Downloads the image from Server, saves to Internal Storage, then updates SQLite
     private fun downloadAndSaveImage(id: Int, name: String, email: String, phone: String, relativePath: String) {
         Thread {
             try {
-                // 1. Construct Full URL (e.g., http://10.0.2.2/Listit/uploads/user.jpg)
                 val fullUrl = Constants.BASE_URL + relativePath
                 val url = URL(fullUrl)
-
-                // 2. Download Bitmap
                 val bitmap = BitmapFactory.decodeStream(url.openConnection().getInputStream())
 
-                // 3. Save to Internal Storage
                 val filename = "profile_$id.jpg"
-                val file = File(filesDir, filename) // filesDir is private app storage
+                val file = File(filesDir, filename)
                 val out = FileOutputStream(file)
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
                 out.flush()
                 out.close()
 
-                // 4. Get Absolute Path
                 val localPath = file.absolutePath
 
-                // 5. Save to DB on Main Thread
                 runOnUiThread {
                     saveToLocalDb(id, name, email, phone, localPath)
                     goToHome(name)
@@ -163,7 +176,6 @@ class Login_email : AppCompatActivity() {
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                // If download fails, still let user in, but with empty image path
                 runOnUiThread {
                     saveToLocalDb(id, name, email, phone, "")
                     goToHome(name)
@@ -179,7 +191,7 @@ class Login_email : AppCompatActivity() {
             put("full_name", name)
             put("email", email)
             put("phone_number", phone)
-            put("profile_image_url", imgPath) // Saving the LOCAL path (or empty)
+            put("profile_image_url", imgPath)
             put("created_at", System.currentTimeMillis().toString())
         }
         db.insertWithOnConflict(ListItDbHelper.TABLE_USERS, null, values, android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE)
