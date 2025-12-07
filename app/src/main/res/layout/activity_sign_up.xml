@@ -20,27 +20,32 @@
             android:id="@+id/topPanel">
 
 
+            <!-- The base image (Background/Design) -->
             <ImageView
                 android:layout_width="match_parent"
                 android:layout_height="300dp"
                 android:adjustViewBounds="true"
                 android:id="@+id/signup1"
                 android:src="@drawable/signup1">
-
             </ImageView>
 
-            <ImageView
+            <!-- The Circular Profile Picker -->
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/signup2"
                 android:layout_width="120dp"
                 android:layout_height="120dp"
                 android:layout_centerHorizontal="true"
                 android:layout_alignBottom="@id/signup1"
                 android:layout_marginTop="150dp"
                 android:layout_marginBottom="25dp"
-                android:adjustViewBounds="true"
-                android:id="@+id/signup2"
-                android:src="@drawable/signup2">
+                android:padding="2dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/signup2"
+                app:shapeAppearanceOverlay="@style/CircularImageView"
+                app:strokeColor="@color/white"
+                app:strokeWidth="2dp" />
 
-            </ImageView>
+
         </RelativeLayout>
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/name_input"
