@@ -12,9 +12,10 @@ import java.nio.charset.StandardCharsets
 
 object PushNotificationSender {
 
+    // UPDATED: Project ID matches your JSON
     private const val FCM_URL = "https://fcm.googleapis.com/v1/projects/listit-749b1/messages:send"
 
-    // KEEP YOUR SERVICE ACCOUNT JSON STRING EXACTLY AS IT WAS
+    // UPDATED: New JSON Key
     private const val SERVICE_ACCOUNT_JSON = """
 {
   "type": "service_account",
@@ -31,30 +32,7 @@ object PushNotificationSender {
 }
 """
 
-    suspend fun sendCallNotification(targetToken: String, callerId: Int, callerName: String, callerImage: String, channelName: String) {
-        withContext(Dispatchers.IO) {
-            try {
-                val dataMap = mapOf(
-                    "type" to "call",
-                    "callerId" to callerId.toString(),
-                    "callerName" to callerName,
-                    "callerImage" to callerImage,
-                    "channelName" to channelName
-                )
-
-                // IMPORTANT: High priority for Android
-                val androidConfig = JSONObject().apply { put("priority", "high") }
-
-                // Pass NULL for title/body so it becomes a DATA ONLY message
-                sendPushNotification(targetToken, null, null, dataMap, androidConfig)
-            } catch (e: Exception) {
-                Log.e("FCM_SEND", "Error sending call: ${e.message}")
-            }
-        }
-    }
-
     suspend fun sendAdSavedNotification(targetToken: String, saverName: String) {
-        // Normal notification still needs title/body
         sendPushNotification(
             targetToken = targetToken,
             title = "Ad Saved! ❤️",
@@ -63,31 +41,37 @@ object PushNotificationSender {
         )
     }
 
-    private suspend fun sendPushNotification(targetToken: String, title: String?, body: String?, data: Map<String, String>? = null, androidConfig: JSONObject? = null) {
+    private suspend fun sendPushNotification(
+        targetToken: String,
+        title: String,
+        body: String,
+        data: Map<String, String>? = null
+    ) {
         withContext(Dispatchers.IO) {
             try {
                 val inputStream = ByteArrayInputStream(SERVICE_ACCOUNT_JSON.toByteArray(StandardCharsets.UTF_8))
-                val googleCredentials = GoogleCredentials.fromStream(inputStream)
+
+                val googleCredentials = GoogleCredentials
+                    .fromStream(inputStream)
                     .createScoped(listOf("https://www.googleapis.com/auth/firebase.messaging"))
                 googleCredentials.refreshIfExpired()
                 val accessToken = googleCredentials.accessToken.tokenValue
 
+
                 val message = JSONObject().apply {
                     put("token", targetToken)
-
-                    // FIXED: Only add notification block if title/body exist
-                    if (title != null && body != null) {
-                        put("notification", JSONObject().apply {
-                            put("title", title)
-                            put("body", body)
-                        })
+                    put("notification", JSONObject().apply {
+                        put("title", title)
+                        put("body", body)
+                    })
+                    data?.let { d ->
+                        put("data", JSONObject(d))
                     }
-
-                    data?.let { d -> put("data", JSONObject(d)) }
-                    androidConfig?.let { put("android", it) }
                 }
 
-                val json = JSONObject().apply { put("message", message) }
+                val json = JSONObject().apply {
+                    put("message", message)
+                }
 
                 val conn = (URL(FCM_URL).openConnection() as HttpURLConnection).apply {
                     requestMethod = "POST"
@@ -98,12 +82,13 @@ object PushNotificationSender {
                 }
 
                 val responseCode = conn.responseCode
-                Log.d("FCM_SEND", "Response Code: $responseCode") // Check Logcat for "200"
+                Log.d("FCM_SEND", "Response Code: $responseCode")
 
                 if (responseCode != 200) {
                     val err = conn.errorStream?.bufferedReader()?.readText()
                     Log.e("FCM_SEND", "Error: $err")
                 }
+
             } catch (e: Exception) {
                 Log.e("FCM_SEND", "Exception: ${e.message}", e)
             }
