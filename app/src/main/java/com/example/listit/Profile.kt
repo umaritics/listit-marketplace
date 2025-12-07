@@ -3,6 +3,7 @@ package com.example.listit
 import ListItDbHelper
 import android.content.Intent
 import android.graphics.BitmapFactory
+import android.net.Uri // Added Uri import
 import android.os.Bundle
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -12,6 +13,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.bumptech.glide.Glide // Import Glide
 import com.google.firebase.auth.FirebaseAuth
 import java.io.File
 
@@ -77,9 +79,6 @@ class Profile : AppCompatActivity() {
 
         findViewById<ImageView>(R.id.prof_ic).setOnClickListener {
             // Already on Profile
-            // startActivity(Intent(this, Profile::class.java))
-            // finish()
-            // overridePendingTransition(0, 0)
         }
     }
 
@@ -91,15 +90,13 @@ class Profile : AppCompatActivity() {
 
     private fun loadUserProfile() {
         val user = auth.currentUser
-        // We use email because fcm_token might not be populated on Login, but Email always is.
         val email = user?.email
 
         if (user == null || email == null) {
-            return // Not logged in
+            return
         }
 
         val db = dbHelper.readableDatabase
-        // UPDATED QUERY: WHERE email = ? (More reliable than fcm_token)
         val cursor = db.rawQuery("SELECT full_name, profile_image_url FROM users WHERE email = ?", arrayOf(email))
 
         if (cursor.moveToFirst()) {
@@ -114,20 +111,32 @@ class Profile : AppCompatActivity() {
                 }
             }
 
-            // 2. Set Image
+            // 2. Set Image (UPDATED LOGIC)
             if (imgIndex != -1) {
-                val localPath = cursor.getString(imgIndex)
-                if (!localPath.isNullOrEmpty()) {
-                    val imgFile = File(localPath)
+                val imagePath = cursor.getString(imgIndex) ?: ""
+                val profileImageView = findViewById<ImageView>(R.id.profile_image)
+
+                if (imagePath.isNotEmpty()) {
+                    val imgFile = File(imagePath)
+
                     if (imgFile.exists()) {
-                        val bitmap = BitmapFactory.decodeFile(imgFile.absolutePath)
-                        findViewById<ImageView>(R.id.profile_image).setImageBitmap(bitmap)
+                        // A. Local File Exists: Load directly
+                        profileImageView.setImageURI(Uri.fromFile(imgFile))
+                    } else {
+                        // B. Local File Missing (likely a Server URL): Use Glide
+                        var fullUrl = imagePath
+                        if (!fullUrl.startsWith("http")) {
+                            fullUrl = Constants.BASE_URL + imagePath
+                        }
+
+                        Glide.with(this)
+                            .load(fullUrl)
+                            .placeholder(R.drawable.user_pfp) // Replace with your default drawable
+                            .error(R.drawable.user_pfp)       // Replace with your default drawable
+                            .into(profileImageView)
                     }
                 }
             }
-        } else {
-            // Debugging help:
-            // Toast.makeText(this, "Profile not synced locally yet", Toast.LENGTH_SHORT).show()
         }
         cursor.close()
     }

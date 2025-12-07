@@ -1,5 +1,6 @@
 package com.example.listit
 
+import ListItDbHelper
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -10,6 +11,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import io.agora.rtc2.ChannelMediaOptions
 import io.agora.rtc2.Constants
 import io.agora.rtc2.IRtcEngineEventHandler
@@ -28,15 +31,27 @@ class VideoCallActivity : AppCompatActivity() {
     private lateinit var remoteContainer: FrameLayout
     private lateinit var btnEnd: ImageView
 
+    // --- ADDED FOR CLEANUP ---
+    private lateinit var dbHelper: ListItDbHelper
+    private var currentUserId = -1
+    // -------------------------
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_video_call)
+
+        // --- 1. GET USER ID (Needed to know which node to delete) ---
+        dbHelper = ListItDbHelper(this)
+        val email = FirebaseAuth.getInstance().currentUser?.email
+        if (email != null) {
+            currentUserId = getUserIdByEmail(email)
+        }
+        // ------------------------------------------------------------
 
         localContainer = findViewById(R.id.local_video_view_container)
         remoteContainer = findViewById(R.id.remote_video_view_container)
         btnEnd = findViewById(R.id.btn_end_call)
 
-        // Accept channel name from Intent
         val passedChannel = intent.getStringExtra("CHANNEL_NAME")
         if (!passedChannel.isNullOrEmpty()) {
             channelName = passedChannel
@@ -60,7 +75,7 @@ class VideoCallActivity : AppCompatActivity() {
                 override fun onUserOffline(uid: Int, reason: Int) {
                     runOnUiThread {
                         Toast.makeText(this@VideoCallActivity, "Call Ended", Toast.LENGTH_SHORT).show()
-                        finish()
+                        finish() // This triggers onDestroy
                     }
                 }
             })
@@ -77,7 +92,6 @@ class VideoCallActivity : AppCompatActivity() {
             channelProfile = Constants.CHANNEL_PROFILE_COMMUNICATION
             clientRoleType = Constants.CLIENT_ROLE_BROADCASTER
         }
-        // JOIN WITH NULL TOKEN (For test mode)
         rtcEngine?.joinChannel(null, channelName, 0, options)
     }
 
@@ -90,8 +104,33 @@ class VideoCallActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+
+        // --- 2. CLEANUP FIREBASE NODE ---
+        deleteCallNode()
+        // --------------------------------
+
         rtcEngine?.leaveChannel()
         RtcEngine.destroy()
+    }
+
+    private fun deleteCallNode() {
+        if (currentUserId != -1) {
+            // Remove the call node for THIS user so Home.kt stops finding it
+            val db = FirebaseDatabase.getInstance("https://listit-749b1-default-rtdb.firebaseio.com/")
+            val ref = db.getReference("calls").child(currentUserId.toString())
+            ref.removeValue()
+        }
+    }
+
+    private fun getUserIdByEmail(email: String): Int {
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery("SELECT user_id FROM users WHERE email = ?", arrayOf(email))
+        var id = -1
+        if (cursor.moveToFirst()) {
+            id = cursor.getInt(0)
+        }
+        cursor.close()
+        return id
     }
 
     private fun checkPermissions(): Boolean {
