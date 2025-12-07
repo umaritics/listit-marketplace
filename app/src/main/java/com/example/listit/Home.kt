@@ -191,6 +191,7 @@ class Home : AppCompatActivity() {
     }
 
     // --- NEW LOGIC: DIRECT RTDB LISTENER ---
+    // --- UPDATED LISTENER: PREVENTS LOOP ---
     private fun setupCallListener() {
         val currentUserEmail = auth.currentUser?.email ?: return
         val currentUserId = getUserIdByEmail(currentUserEmail)
@@ -214,14 +215,17 @@ class Home : AppCompatActivity() {
 
                         Log.d("CallListener", "Call detected! Launching IncomingCallActivity")
 
-                        // Launch Activity directly
+                        // 1. Launch Activity immediately
                         val intent = Intent(this@Home, IncomingCallActivity::class.java)
                         intent.putExtra("CALLER_NAME", callerName)
                         intent.putExtra("CALLER_ID", callerId)
                         intent.putExtra("CHANNEL_NAME", channelName)
-                        // IMPORTANT: Add New Task flag to launch cleanly
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         startActivity(intent)
+
+                        // 2. CRITICAL FIX: Update status immediately to stop the loop
+                        // This prevents Home from launching the screen again
+                        snapshot.ref.child("status").setValue("ringing_received")
                     }
                 }
             }
