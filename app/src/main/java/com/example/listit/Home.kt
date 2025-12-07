@@ -191,8 +191,6 @@ class Home : AppCompatActivity() {
             db.insert(ListItDbHelper.TABLE_SAVED_ADS, null, values)
         } else {
             // UNSAVE (Soft Delete for Sync)
-            // Mark is_deleted=1, is_synced=0. Sync will remove it from server.
-            // But we can check if it was ever synced. If not, hard delete.
             db.execSQL("UPDATE saved_ads SET is_deleted=1, is_synced=0 WHERE user_id=$userId AND ad_id=${ad.id}")
         }
 
@@ -244,7 +242,6 @@ class Home : AppCompatActivity() {
         cursor.close()
     }
 
-    // ... (Keep filter UI logic setupCategoryBar, setCategoryFilter, updateFilterUI, refilter same as before) ...
     private fun setupCategoryBar() {
         findViewById<LinearLayout>(R.id.cat_cars).setOnClickListener { setCategoryFilter("Car") }
         findViewById<LinearLayout>(R.id.cat_mobile).setOnClickListener { setCategoryFilter("Mobile") }
@@ -329,12 +326,13 @@ class Home : AppCompatActivity() {
         val userId = getUserIdByEmail(currentUserEmail)
 
         val db = dbHelper.readableDatabase
-        // UPDATED QUERY: Check saved_ads table to set isSaved flag
+        // UPDATED QUERY: Added WHERE a.is_deleted = 0 to filter out removed ads
         val query = """
             SELECT a.ad_id, a.title, a.price, a.location_address, a.created_at, a.is_synced, i.image_url, a.category, a.condition_type,
             (SELECT count(*) FROM saved_ads s WHERE s.ad_id = a.ad_id AND s.user_id = $userId AND s.is_deleted = 0) as is_saved
             FROM ${ListItDbHelper.TABLE_ADS} a
             LEFT JOIN ${ListItDbHelper.TABLE_AD_IMAGES} i ON a.ad_id = i.ad_id AND i.is_primary = 1
+            WHERE a.is_deleted = 0 
             ORDER BY a.created_at DESC
         """
         val cursor = db.rawQuery(query, null)
@@ -351,7 +349,7 @@ class Home : AppCompatActivity() {
                     imagePath = cursor.getString(6),
                     category = cursor.getString(7),
                     condition = cursor.getString(8),
-                    isSaved = cursor.getInt(9) > 0 // New Logic
+                    isSaved = cursor.getInt(9) > 0
                 )
                 fullAdList.add(ad)
             } while (cursor.moveToNext())
@@ -385,9 +383,6 @@ class Home : AppCompatActivity() {
         return lastDate
     }
 
-    // ... (Keep syncAdsFromServer, syncDirtyAdsToServer, uploadSingleAd, syncAllUsers, isNetworkAvailable same as before) ...
-    // To save space, assuming previous sync functions are here.
-    // Just ensure syncAdsFromServer calls loadAdsFromLocalDB() at the end.
 
     private fun syncAdsFromServer() {
         val queue = Volley.newRequestQueue(this)
@@ -424,6 +419,9 @@ class Home : AppCompatActivity() {
                                         put("lat", obj.optDouble("lat", 0.0))
                                         put("lng", obj.optDouble("lng", 0.0))
                                         put("is_synced", 1)
+                                        // UPDATED: Sync is_deleted status from server if you implemented that logic in get_ads
+                                        // But for now default is 0 as get_ads only returns ACTIVE ads
+                                        put("is_deleted", 0)
                                         put("created_at", obj.getString("created_at"))
                                     }
                                     db.insert(ListItDbHelper.TABLE_ADS, null, values)
@@ -438,6 +436,8 @@ class Home : AppCompatActivity() {
                                         }
                                         db.insert(ListItDbHelper.TABLE_AD_IMAGES, null, imgValues)
                                     }
+                                } else {
+                                    // Ad exists locally, maybe check for updates (e.g. status changes) if needed
                                 }
                                 check.close()
                             }
@@ -475,6 +475,7 @@ class Home : AppCompatActivity() {
                 val price = cursor.getDouble(cursor.getColumnIndexOrThrow("price"))
                 val condition = cursor.getString(cursor.getColumnIndexOrThrow("condition_type"))
                 val location = cursor.getString(cursor.getColumnIndexOrThrow("location_address"))
+
                 val lat = cursor.getDouble(cursor.getColumnIndexOrThrow("lat"))
                 val lng = cursor.getDouble(cursor.getColumnIndexOrThrow("lng"))
 
@@ -496,20 +497,28 @@ class Home : AppCompatActivity() {
         val url = Constants.BASE_URL + "post_ad.php"
         val stringRequest = object : StringRequest(Request.Method.POST, url,
             { response ->
+                // PARSE RESPONSE TO GET SERVER ID
                 try {
                     val jsonStartIndex = response.indexOf("{")
                     if (jsonStartIndex != -1) {
                         val cleanResponse = response.substring(jsonStartIndex)
                         val json = JSONObject(cleanResponse)
+
                         if (json.getString("status") == "success") {
                             val serverAdId = json.getInt("ad_id")
                             val db = dbHelper.writableDatabase
+
+                            // ID SWAP: Replace Local ID with Server ID
                             db.execSQL("UPDATE ad_images SET ad_id = $serverAdId WHERE ad_id = $localAdId")
                             db.execSQL("UPDATE ads SET ad_id = $serverAdId, is_synced = 1 WHERE ad_id = $localAdId")
-                            loadAdsFromLocalDB()
+
+                            Log.d("Home", "Synced Ad Local:$localAdId -> Server:$serverAdId")
+                            loadAdsFromLocalDB() // Refresh UI with new ID
                         }
                     }
-                } catch (e: Exception) { Log.e("Home", "Sync Error: ${e.message}") }
+                } catch (e: Exception) {
+                    Log.e("Home", "Sync Response Error: ${e.message}")
+                }
             },
             { error -> Log.e("Home", "Failed to sync ad $localAdId") }
         ) {
@@ -544,12 +553,14 @@ class Home : AppCompatActivity() {
                 return params
             }
         }
+        stringRequest.retryPolicy = DefaultRetryPolicy(30000, 0, 1f)
         queue.add(stringRequest)
     }
 
     private fun syncAllUsers() {
         val queue = Volley.newRequestQueue(this)
         val url = Constants.BASE_URL + "get_users.php"
+
         val request = StringRequest(Request.Method.GET, url,
             { response ->
                 try {
@@ -560,9 +571,11 @@ class Home : AppCompatActivity() {
                         if (json.getString("status") == "success") {
                             val usersArray = json.getJSONArray("data")
                             val db = dbHelper.writableDatabase
+
                             for (i in 0 until usersArray.length()) {
                                 val obj = usersArray.getJSONObject(i)
                                 val serverUserId = obj.getInt("user_id")
+
                                 val values = ContentValues().apply {
                                     put("user_id", serverUserId)
                                     put("full_name", obj.getString("full_name"))
@@ -582,6 +595,8 @@ class Home : AppCompatActivity() {
     }
 
     private fun setupNavigation() {
+        //findViewById<ImageView>(R.id.cars).setOnClickListener { startActivity(Intent(this, Category_Car::class.java)) }
+        //findViewById<LinearLayout>(R.id.category_bar).setOnClickListener { startActivity(Intent(this, Filters::class.java)) }
         findViewById<ImageView>(R.id.home_ic).setOnClickListener { }
         findViewById<ImageView>(R.id.chat_ic).setOnClickListener { startActivity(Intent(this, Buying::class.java)) }
         findViewById<ImageView>(R.id.add_ic)?.setOnClickListener { startActivity(Intent(this, PostAd::class.java)) }

@@ -10,5 +10,6 @@ data class Ad(
     val imagePath: String?,
     val date: String,
     val isSynced: Int,
-    var isSaved: Boolean = false // New Field
+    var isSaved: Boolean = false,
+    val isDeleted: Int = 0 // 0 = Active, 1 = Deleted
 )

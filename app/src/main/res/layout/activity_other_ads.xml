@@ -17,196 +17,104 @@
         android:paddingLeft="12dp"
         android:paddingRight="12dp"
         >
-    <TextView
-        android:id="@+id/tvHeader"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Public Profile"
-        android:textColor="#FF6F00"
-        android:textSize="18sp"
-        android:textStyle="bold" />
-
-    <!-- Profile Card -->
-    <RelativeLayout
-        android:id="@+id/profileCard"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/tvHeader"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/rounded_orange_bg"
-        android:padding="12dp">
-
-        <!-- Profile Image -->
-        <ImageView
-            android:id="@+id/imgProfile"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:src="@drawable/ic_profile_placeholder"
-            android:scaleType="centerCrop"
-            android:layout_alignParentStart="true" />
-
-        <!-- Posted By Label -->
         <TextView
-            android:id="@+id/tvPostedBy"
+            android:id="@+id/tvHeader"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Posted By"
-            android:textColor="#888888"
-            android:textSize="12sp"
-            android:layout_toEndOf="@id/imgProfile"
-            android:layout_marginStart="8dp"
-            android:layout_alignTop="@id/imgProfile" />
+            android:text="Public Profile"
+            android:textColor="#FF6F00"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
-        <!-- User Name -->
-        <TextView
-            android:id="@+id/tvUserName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Shahmeer Atif"
-            android:textColor="#000000"
-            android:textStyle="bold"
-            android:textSize="15sp"
-            android:layout_below="@id/tvPostedBy"
-            android:layout_toEndOf="@id/imgProfile"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="2dp" />
-
-        <!-- Published Ads Box -->
-        <LinearLayout
-            android:id="@+id/adsBox"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/btn_bg_orange"
-            android:padding="6dp"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:gravity="center">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Published Ads"
-                android:textSize="11sp"
-                android:textColor="#000000"
-                android:gravity="center" />
-
-            <TextView
-                android:id="@+id/tvAdCount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="3"
-                android:textStyle="bold"
-                android:textSize="14sp"
-                android:gravity="center" />
-        </LinearLayout>
-    </RelativeLayout>
-
-    <!-- Scrollable Ads List -->
-    <ScrollView
-        android:layout_below="@id/profileCard"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/rounded_card"
-        android:layout_marginTop="10dp">
-
+        <!-- Profile Card -->
         <RelativeLayout
+            android:id="@+id/profileCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_below="@id/tvHeader"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/rounded_orange_bg"
+            android:padding="12dp">
 
-            android:padding="10dp"
-            android:layout_marginBottom="12dp">
-
-            <!-- Left Image -->
-            <ImageView
-                android:id="@+id/adImage"
-                android:layout_width="140dp"
-                android:layout_height="120dp"
+            <!-- Profile Image -->
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/imgProfile"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:src="@drawable/ic_profile_placeholder"
                 android:scaleType="centerCrop"
-                android:src="@drawable/sample_image"
                 android:layout_alignParentStart="true"
-                android:layout_marginEnd="10dp"
-                android:layout_centerVertical="true" />
+                app:shapeAppearanceOverlay="@style/CircularImageView"/>
 
-            <!-- Title -->
+            <!-- Posted By Label -->
             <TextView
-                android:id="@+id/adTitle"
+                android:id="@+id/tvPostedBy"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_toEndOf="@id/adImage"
-                android:text="Grahame Jenkins"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="#000000"
-                android:layout_marginTop="4dp" />
+                android:text="Posted By"
+                android:textColor="#888888"
+                android:textSize="12sp"
+                android:layout_toEndOf="@id/imgProfile"
+                android:layout_marginStart="8dp"
+                android:layout_alignTop="@id/imgProfile" />
 
-            <!-- Status (Not Active) -->
+            <!-- User Name -->
             <TextView
-                android:id="@+id/adStatus"
+                android:id="@+id/tvUserName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Not Active"
-                android:textColor="#FF6F00"
-                android:textSize="13sp"
-                android:layout_alignParentEnd="true"
-                android:layout_alignBaseline="@id/adTitle" />
-
-            <!-- Location -->
-            <TextView
-                android:id="@+id/adLocation"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Brooklyn"
-                android:textColor="#666666"
-                android:textSize="13sp"
-                android:layout_below="@id/adTitle"
-                android:layout_toEndOf="@id/adImage"
-                android:layout_marginTop="2dp" />
-
-            <!-- Price -->
-            <TextView
-                android:id="@+id/adPrice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="$440.00"
+                android:text="Loading..."
                 android:textColor="#000000"
                 android:textStyle="bold"
                 android:textSize="15sp"
-                android:layout_below="@id/adLocation"
-                android:layout_toEndOf="@id/adImage"
-                android:layout_marginTop="4dp" />
+                android:layout_below="@id/tvPostedBy"
+                android:layout_toEndOf="@id/imgProfile"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="2dp" />
 
-            <!-- Button Row -->
+            <!-- Published Ads Box -->
             <LinearLayout
-                android:id="@+id/buttonContainer"
+                android:id="@+id/adsBox"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/adPrice"
-                android:layout_toEndOf="@id/adImage"
-                android:layout_marginTop="8dp"
-                android:orientation="horizontal">
+                android:orientation="vertical"
+                android:background="@drawable/btn_bg_orange"
+                android:padding="6dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:gravity="center">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnRemove"
-                    android:layout_width="200dp"
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="View"
-                    android:textAllCaps="false"
-                    android:textColor="@color/orange"
-                    android:textSize="12sp"
-                    android:paddingHorizontal="16dp"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    app:strokeColor="@color/orange"
-                    app:strokeWidth="1dp"
-                    app:cornerRadius="8dp" />
+                    android:text="Published Ads"
+                    android:textSize="11sp"
+                    android:textColor="#000000"
+                    android:gravity="center" />
 
-
+                <TextView
+                    android:id="@+id/tvAdCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:gravity="center" />
             </LinearLayout>
-
         </RelativeLayout>
 
-    </ScrollView>
+        <!-- RECYCLER VIEW (Replaces ScrollView) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_other_ads"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/profileCard"
+            android:layout_marginTop="10dp"
+            android:clipToPadding="false"
+            android:paddingBottom="10dp" />
+
     </RelativeLayout>
+
     <LinearLayout
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
@@ -220,13 +128,11 @@
 
         <!-- Home -->
         <LinearLayout
-
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical">
-
             <ImageView
                 android:id="@+id/home_ic"
                 android:layout_width="22dp"
@@ -242,7 +148,6 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical">
-
             <ImageView
                 android:id="@+id/chat_ic"
                 android:layout_width="22dp"
@@ -258,7 +163,6 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical">
-
             <ImageView
                 android:id="@+id/add_ic"
                 android:layout_width="36dp"
@@ -274,7 +178,6 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical">
-
             <ImageView
                 android:id="@+id/fav_ic"
                 android:layout_width="22dp"
@@ -290,7 +193,6 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical">
-
             <ImageView
                 android:id="@+id/prof_ic"
                 android:layout_width="22dp"
@@ -298,6 +200,5 @@
                 android:contentDescription="Profile"
                 android:src="@drawable/ic_profile" />
         </LinearLayout>
-
     </LinearLayout>
 </RelativeLayout>
