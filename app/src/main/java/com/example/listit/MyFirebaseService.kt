@@ -21,11 +21,53 @@ class MyFirebaseService : FirebaseMessagingService() {
         val data = remoteMessage.data
         val type = data["type"]
 
+        Log.d("FCM_SERVICE", "Message received. Type: $type Data: $data")
+
         if (type == "call") {
             handleIncomingCall(data)
-        } else {
-            // Handle other messages
+        } else if (type == "save") {
+            // FIX: THIS BLOCK WAS MISSING
+            val title = data["title"] ?: "New Notification"
+            val body = data["body"] ?: ""
+            sendBasicNotification(title, body)
         }
+    }
+
+    private fun sendBasicNotification(title: String, messageBody: String) {
+        val intent = Intent(this, Home::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_ONE_SHOT
+        )
+
+        val channelId = "default_channel_id"
+        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
+        // Using ic_favorite or ic_launcher_foreground as fallback
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(messageBody)
+            .setAutoCancel(true)
+            .setSound(soundUri)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setColor(0xFFFF6F00.toInt()) // Orange color
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "ListIt Alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), notificationBuilder.build())
     }
 
     private fun handleIncomingCall(data: Map<String, String>) {
@@ -33,7 +75,7 @@ class MyFirebaseService : FirebaseMessagingService() {
         val callerId = data["callerId"] ?: ""
         val channelName = data["channelName"] ?: ""
 
-        // 1. Setup the Intent to open the Call Screen
+        // Ensure IncomingCallActivity exists in manifest
         val intent = Intent(this, IncomingCallActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra("CALLER_NAME", callerName)
@@ -41,19 +83,16 @@ class MyFirebaseService : FirebaseMessagingService() {
             putExtra("CHANNEL_NAME", channelName)
         }
 
-        // 2. CHECK: Is the app currently open (Foreground)?
         if (isAppInForeground()) {
-            // FORCE START THE ACTIVITY IMMEDIATELY
             Log.d("FCM_SERVICE", "App is in foreground, launching activity directly.")
             startActivity(intent)
         } else {
-            // App is background/killed: We MUST use the Notification to wake it up
             Log.d("FCM_SERVICE", "App is in background, sending Full Screen Notification.")
-            showNotification(intent, callerName)
+            showCallNotification(intent, callerName)
         }
     }
 
-    private fun showNotification(intent: Intent, callerName: String) {
+    private fun showCallNotification(intent: Intent, callerName: String) {
         val pendingIntent = PendingIntent.getActivity(
             this,
             System.currentTimeMillis().toInt(),
@@ -61,7 +100,7 @@ class MyFirebaseService : FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val channelId = "incoming_calls_v3" // Changed ID again to ensure fresh settings
+        val channelId = "incoming_calls_v3"
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
 
@@ -85,7 +124,7 @@ class MyFirebaseService : FirebaseMessagingService() {
             .setContentText("$callerName is calling...")
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setFullScreenIntent(pendingIntent, true) // Essential for Lock Screen
+            .setFullScreenIntent(pendingIntent, true)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setSound(soundUri)
@@ -95,7 +134,6 @@ class MyFirebaseService : FirebaseMessagingService() {
         notificationManager.notify(111, notification)
     }
 
-    // Helper to check if app is running in front
     private fun isAppInForeground(): Boolean {
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val appProcesses = activityManager.runningAppProcesses ?: return false
@@ -107,5 +145,10 @@ class MyFirebaseService : FirebaseMessagingService() {
             }
         }
         return false
+    }
+
+    override fun onNewToken(token: String) {
+        super.onNewToken(token)
+        Log.d("FCM", "New Token: $token")
     }
 }

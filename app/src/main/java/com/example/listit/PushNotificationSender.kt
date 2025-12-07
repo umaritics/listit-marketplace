@@ -14,13 +14,13 @@ object PushNotificationSender {
 
     private const val FCM_URL = "https://fcm.googleapis.com/v1/projects/listit-749b1/messages:send"
 
-    // KEEP YOUR SERVICE ACCOUNT JSON STRING EXACTLY AS IT WAS
+    // YOUR KEY
     private const val SERVICE_ACCOUNT_JSON = """
 {
   "type": "service_account",
   "project_id": "listit-749b1",
-  "private_key_id": "aaf3baa432ac2a9cf4f9d537f39e7f1d734687be",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQD1JZe/xXKxc/QP\n5RT7uF7I7jYBCflM8zy/LFpU9r2p81K//i9nJTLGZ2iUyYPbwPiu3iG8GJRhLfHG\nkMxmJivCQ6H7VwTbUczclbsciMvcPmaNUfR/QevZzaQC4ha+obHRPBGJvL//afOO\ns9TMvUTOm7Gdqza9Exsc2w8Q/BUVfj1wUq5tVWJLyu8HJZ1LoRhpQePJID3vWTaK\nwEZ3+e+gaLlrbBW6gCC0ixjYbaQIEbgkkbl8uqEzOH+ei/G8B/2XtPApP/NiMGUN\nW2iMUJ6J6ZYndMDLovKxlTXMmFyW4+HW94daFz0TpGTaDhx5iABiO8tG1G3pn16S\nryAHmhfnAgMBAAECggEAVDoPUldPmcKiJ1fpBreI8XZO3bqEijjENVbSzoBcF+k/\nFDIMLV8te9eJqh02jalWiBZP9uVnDaCQgk27vJj+zecY31c9lvEa9usG973UdR6H\nc6Sl4ZdPpmyuHkN51xONGbuOtwk/2kyX3v7QbWvWGTqLIwXxb7MBzL9DBO3nfJNP\n+ZsBSWPz0bDoQ9Iw9fzI/04Dsf3vJRNHKwJ94MY8daOhd9pQwGROHgaBDUxA+J1E\nHgMPh+Z5dypM4ZPHuNWxivpCPVuhj1tzjSltWM/50U19qxgJ97sMEda8CrV6zGa1\nDag4wHLaoHBldjPMERtpYRyGS+Iytbq166b/AKGTuQKBgQD6mMbGAEiaUsrvD/GN\ntxsaQs5F8rbYjRJnQJEI12UtEMQ+jwRJh23wdgzRYyQrCR5ISc4n5hGljxXFkea7\n7glu7q2lxAu4T9aU61eofwfTXbcPNzCEwCNxNAIyTu89hRVTujMca1oVlR8GFV+o\n/GMVQUFRSgv+nw8IJQ6+e367YwKBgQD6brv0kFNndrNq4nMMc5zMro1SgVcc4enl\n4IjXsxDrlSH+mgMJe5VE92UJ5XDIw3zEtgRGpK2g+dnCP3sYZZ7Y3uXfxKCI2TKi\nxjKEavOQJAIPgou8E3HpGWcPzHRc0SUAUrX/Npi8554TmYs3B1HjsuREkgJgcaV0\nRKoMfL2SrQKBgDphhU1zm3Z4e1aefEPruKCxl6SsGvTwSK1NWXyZ0bRiB5Ybc4A9\n0NsIZYwScMal5SwqJaEd9FaBsyzIBN0bY484g7PurFxQHUmsWkui7IvNdWxSCzei\nG5+v4iMeSJYofwN2iZnBWMdWalfceuC/i8XT4geyHIFBRRs8puaxlqDJAoGBAJR8\nV8E4Wdt8zADR57k4S34o+O40djxPzulX6otKRvwH3rIhCy/yMJ1FuojVm7vN/Qp9\niaeBONm7itvb29apWjfoYY/9+9loPte4gHd3GpcaYoZjtwp61Q2K3ErHxS7Law73\n+6Uo8AMBqf6hCaRFGM7TYPkvQW2BtMJtfA4PYC+5AoGBANKtPtgbYuwh/M5ndICx\nsyhEGYRAfNWuHmrlpvmaeZS87k0qufRjQG5lg//111xYkPwZH+GJrdaX5Vyp70PU\nl4afwY3dK862IUG2Bss/alXX99xCdWMNzfQ2PGNpGTmXYb39A25JxX+zHzTx1UdK\n+thiIDQ9AayzPwzg5MbQG7E1\n-----END PRIVATE KEY-----\n",
+  "private_key_id": "d57345b4c1cdef7198c8a554b377e9b27e88c28f",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCmsULpPdcZaSI0\nHJYRkPLoJSBMzipwVE3wLGmFUxkHU6yGjRFuiuV6qO0qSzEU2d6yeYSsZJ7ZYr0+\nagpEcXkSx3UxvPNF5Bxzi8rcJlTKaQYCQQiduuKAKeXAk0XQqLF0aYyrF17K/ME8\ncaGfQ2WMVDu/3XDy+OUqkaoCPh0q++zhWHdMhakCnbhVaaSs4kGBOG581X47uKLO\nefJ206fQAVhMeQ+kCcgA7a7QHJdZF8YQbA/xD7iRq2NsAW/3pWILcWRF7+48YXpB\nROuIBJhnscmgcn9AUaDrKvEsbJ1Y+1+kuB2i/RcvESR3kRjKZSli59CRKN1wOtKZ\nChCGa15ZAgMBAAECggEAA04lgQF4Z+kVRApDEYMZxe+ihdNatRJ+3yHKT9n3d5U5\nqQtYCqSXa0i5Nyr5hKvTRh+xuUdffPj/vqKUpInJeE1bLgrMmhitVb8yXQ4nhUHy\n3A2VEaeYgSkThK+G5V3K8v96yhOzDfxYCo5IQaOw+kjbTHEkIbU8ugzcXaIEqwr+\nlKQlPqf+Ftm0p9PmHyilBnDJRvowbJax4ibkq2G/wjGsgBIcTuqwh09/bhCqVYlz\nLCm15s74IlW8K6YmuhaHdGkaW0AmyyI+rHX3OQxeWTteAYafydBL19psC4eFxYMK\nEpQp7Zahw3IM7k/x+v+MlYZSWbOXTCgj2PupgpRf9wKBgQDQeh3zmmVE5qw4c11a\nEGZYYVU4xI487hb2bakRWj98ve0im/yZJTuzHiOWnvVboBejj7G+5aVGiHXmTMB4\nbUZMs3bLwe/g18z8iVFFtnLszUk74zLU1y7O+ugLJaVgGKC8nTjbJs+B/VVRWiDZ\n6ZZWHYUaaReewhq947Ag7c8p7wKBgQDMsMNaREC/vps2fo2IW+oYYzMmAarCSGM6\n7+GPmTJUpgnUOayN7sydZ/SZT/b9CYRg1KwetSffA9E3HKEgeBk9JjmuaU4nVy00\nAB/WeX4W2WfRO3/TTNmapqFH8cjavsQc8sQCzgTuhJu8+sqDDQc/zYfFnckkudvr\nHg3lTfhkNwKBgQC5aHGszdpUrcXqqocSa1VqMp4lT4GkpKadYSekfBvMZ+k3B31e\nAiQXB63k7dgONdHwMAKHYRtdIE2ilQ3zzFNiMZVsXz1kPOhcjA9QrZOGEIiaD1SM\nwBcsEy89gqySSzTgqf7/wIN5+wDeygY/ZyPB0J0owOA13DEGQjHJB1Zf1wKBgDrW\nHHEX6Vy0Vz0kx14IvZNhAFTOad0KnatVRIrYSEVYrL6aDWWG3L3qIb7n42D8mVaU\nCx2QiPNrz3l9+zqwCuEu2amuj05zmoS1/HDT31CGEXdtGOMN1gbEGtvpPgjSiOCh\nT4JW4cgFyhZaKFffKNRIKdy97BFoczR0IR5meR2lAoGBAMHdH1jX8+sR/h2WpeRr\n8UK1FtAn0dvslpn7wt+TwrrTFSBOC036hBNOjJiZB4eRVvbw+TG5LZPyBiZlM/D+\naydce2/cisJXCE34E69bPPbgHkU2qQInpeylSWdt5jJ9OnMcAY+7Z0CWuBiEXcXk\nC7bR6rvZn+fLNj8kPrDZef/s\n-----END PRIVATE KEY-----\n",
   "client_email": "firebase-adminsdk-fbsvc@listit-749b1.iam.gserviceaccount.com",
   "client_id": "104112192833817863631",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
@@ -32,35 +32,27 @@ object PushNotificationSender {
 """
 
     suspend fun sendCallNotification(targetToken: String, callerId: Int, callerName: String, callerImage: String, channelName: String) {
-        withContext(Dispatchers.IO) {
-            try {
-                val dataMap = mapOf(
-                    "type" to "call",
-                    "callerId" to callerId.toString(),
-                    "callerName" to callerName,
-                    "callerImage" to callerImage,
-                    "channelName" to channelName
-                )
+        val dataMap = mapOf(
+            "type" to "call",
+            "callerId" to callerId.toString(),
+            "callerName" to callerName,
+            "callerImage" to callerImage,
+            "channelName" to channelName
+        )
+        // High priority for calls
+        val androidConfig = JSONObject().apply { put("priority", "high") }
 
-                // IMPORTANT: High priority for Android
-                val androidConfig = JSONObject().apply { put("priority", "high") }
-
-                // Pass NULL for title/body so it becomes a DATA ONLY message
-                sendPushNotification(targetToken, null, null, dataMap, androidConfig)
-            } catch (e: Exception) {
-                Log.e("FCM_SEND", "Error sending call: ${e.message}")
-            }
-        }
+        sendPushNotification(targetToken, null, null, dataMap, androidConfig)
     }
 
     suspend fun sendAdSavedNotification(targetToken: String, saverName: String) {
-        // Normal notification still needs title/body
-        sendPushNotification(
-            targetToken = targetToken,
-            title = "Ad Saved! ❤️",
-            body = "$saverName just saved your ad.",
-            data = mapOf("type" to "save")
+        // Putting title/body in DATA map ensures onMessageReceived is always called
+        val dataMap = mapOf(
+            "type" to "save",
+            "title" to "Ad Saved! ❤️",
+            "body" to "$saverName just saved your ad."
         )
+        sendPushNotification(targetToken, null, null, dataMap)
     }
 
     private suspend fun sendPushNotification(targetToken: String, title: String?, body: String?, data: Map<String, String>? = null, androidConfig: JSONObject? = null) {
@@ -75,7 +67,7 @@ object PushNotificationSender {
                 val message = JSONObject().apply {
                     put("token", targetToken)
 
-                    // FIXED: Only add notification block if title/body exist
+                    // Only add 'notification' block if explicit arguments are passed (standard background behavior)
                     if (title != null && body != null) {
                         put("notification", JSONObject().apply {
                             put("title", title)
@@ -98,7 +90,7 @@ object PushNotificationSender {
                 }
 
                 val responseCode = conn.responseCode
-                Log.d("FCM_SEND", "Response Code: $responseCode") // Check Logcat for "200"
+                Log.d("FCM_SEND", "Response Code: $responseCode")
 
                 if (responseCode != 200) {
                     val err = conn.errorStream?.bufferedReader()?.readText()

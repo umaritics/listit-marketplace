@@ -37,12 +37,9 @@ class ViewAd : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
 
     private var adId: Int = -1
-    // RESTORED: This was missing, needed for Chat
     private var sellerId: Int = -1
     private var sellerPhoneNumber: String = ""
-
-    // Friend's Feature: Variable to hold the seller's token
-    private var sellerFcmToken: String = ""
+    private var sellerFcmToken: String = "" // NEW: Token
 
     private lateinit var mapView: MapView
     private var isSaved = false
@@ -50,7 +47,6 @@ class ViewAd : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize OpenStreetMap
         Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
 
         enableEdgeToEdge()
@@ -87,7 +83,7 @@ class ViewAd : AppCompatActivity() {
             }
         }
 
-        // RESTORED: Chat Button Logic
+        // Chat Button Logic
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_chat).setOnClickListener {
             val currentUserEmail = auth.currentUser?.email
             if (currentUserEmail == null) {
@@ -116,10 +112,8 @@ class ViewAd : AppCompatActivity() {
     private fun checkIfSaved() {
         val currentUserEmail = auth.currentUser?.email ?: return
         val userId = getUserIdByEmail(currentUserEmail)
-
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT count(*) FROM saved_ads WHERE user_id = ? AND ad_id = ? AND is_deleted = 0", arrayOf(userId.toString(), adId.toString()))
-
         if (cursor.moveToFirst()) {
             isSaved = cursor.getInt(0) > 0
         }
@@ -130,7 +124,6 @@ class ViewAd : AppCompatActivity() {
     private fun updateFavIcon() {
         val favIcon = findViewById<ImageView>(R.id.fav_icon)
         favIcon.clearColorFilter()
-
         if (isSaved) {
             favIcon.setImageResource(R.drawable.ic_favourite) // Filled
         } else {
@@ -152,7 +145,6 @@ class ViewAd : AppCompatActivity() {
         updateFavIcon()
 
         if (isSaved) {
-            // 1. Save Locally
             val values = ContentValues().apply {
                 put("user_id", userId)
                 put("ad_id", adId)
@@ -161,11 +153,9 @@ class ViewAd : AppCompatActivity() {
                 put("created_at", System.currentTimeMillis().toString())
             }
             db.insert(ListItDbHelper.TABLE_SAVED_ADS, null, values)
-
-            // 2. Sync to Server
             syncSaveToServer(userId, adId, "save")
 
-            // 3. SEND NOTIFICATION (Friend's Feature)
+            // NOTIFICATION TRIGGER
             if (sellerFcmToken.isNotEmpty()) {
                 val saverName = currentUser.displayName ?: "Someone"
                 lifecycleScope.launch {
@@ -177,11 +167,10 @@ class ViewAd : AppCompatActivity() {
                     }
                 }
             } else {
-                Log.d("ViewAd", "Seller token not found, cannot send notification")
+                Log.d("ViewAd", "Seller token not found")
             }
 
         } else {
-            // Unsave Logic
             db.execSQL("UPDATE saved_ads SET is_deleted=1, is_synced=0 WHERE user_id=$userId AND ad_id=$adId")
             syncSaveToServer(userId, adId, "unsave")
         }
@@ -190,7 +179,6 @@ class ViewAd : AppCompatActivity() {
     private fun syncSaveToServer(userId: Int, adId: Int, action: String) {
         val queue = Volley.newRequestQueue(this)
         val url = Constants.BASE_URL + "save_ad.php"
-
         val request = object : StringRequest(Request.Method.POST, url,
             { response ->
                 if (response.contains("success")) {
@@ -215,21 +203,19 @@ class ViewAd : AppCompatActivity() {
         queue.add(request)
     }
 
-    // RESTORED: Logic to start Chat (DB check + Server creation)
+    // ... (Keep existing chat logic, getUserId, loadAdDetails, etc.) ...
+    // Added helper to reduce code duplication for response
+
     private fun initiateChat(buyerId: Int, sellerId: Int) {
         val dbRead = dbHelper.readableDatabase
-        // Check if chat exists locally
         val cursor = dbRead.rawQuery("SELECT chat_id FROM chat_rooms WHERE ad_id = ? AND buyer_id = ? AND seller_id = ?",
             arrayOf(adId.toString(), buyerId.toString(), sellerId.toString()))
 
         var chatId = -1
-        if (cursor.moveToFirst()) {
-            chatId = cursor.getInt(0)
-        }
+        if (cursor.moveToFirst()) chatId = cursor.getInt(0)
         cursor.close()
 
         if (chatId == -1) {
-            // Create new chat room locally
             val dbWrite = dbHelper.writableDatabase
             val values = ContentValues().apply {
                 put("ad_id", adId)
@@ -240,23 +226,17 @@ class ViewAd : AppCompatActivity() {
             chatId = dbWrite.insert(ListItDbHelper.TABLE_CHAT_ROOMS, null, values).toInt()
         }
 
-        // NETWORK REQUEST TO CREATE CHAT ON SERVER
         val queue = Volley.newRequestQueue(this)
         val url = Constants.BASE_URL + "create_chat.php"
-
-        val request = object : StringRequest(
-            Request.Method.POST, url,
+        val request = object : StringRequest(Request.Method.POST, url,
             { response ->
                 try {
                     val json = JSONObject(response)
                     if (json.getString("status") == "success") {
                         val serverChatId = json.getInt("chat_id")
-
-                        // Navigate to Chat Screen with SERVER ID
                         val intent = Intent(this, Chat_message::class.java)
                         intent.putExtra("CHAT_ID", serverChatId)
                         intent.putExtra("OTHER_NAME", findViewById<TextView>(R.id.seller_name).text.toString())
-                        // Note: If you have seller image URL available from loadSellerDetails, you can pass it here too
                         startActivity(intent)
                     }
                 } catch (e: Exception) { e.printStackTrace() }
@@ -272,15 +252,6 @@ class ViewAd : AppCompatActivity() {
             }
         }
         queue.add(request)
-
-        // Immediate fallback navigation (in case net is slow, but ideally rely on server response)
-        // Comment this out if you prefer waiting for server response
-        /*
-        val intent = Intent(this, Chat_message::class.java)
-        intent.putExtra("CHAT_ID", chatId)
-        intent.putExtra("OTHER_NAME", findViewById<TextView>(R.id.seller_name).text.toString())
-        startActivity(intent)
-        */
     }
 
     private fun getUserIdByEmail(email: String): Int {
@@ -303,10 +274,7 @@ class ViewAd : AppCompatActivity() {
             val loc = cursor.getString(cursor.getColumnIndexOrThrow("location_address"))
             val condition = cursor.getString(cursor.getColumnIndexOrThrow("condition_type"))
             val category = cursor.getString(cursor.getColumnIndexOrThrow("category"))
-
-            // RESTORED: Assigning the class-level variable
             sellerId = cursor.getInt(cursor.getColumnIndexOrThrow("user_id"))
-
             val date = cursor.getString(cursor.getColumnIndexOrThrow("created_at"))
             val lat = cursor.getDouble(cursor.getColumnIndexOrThrow("lat"))
             val lng = cursor.getDouble(cursor.getColumnIndexOrThrow("lng"))
@@ -329,38 +297,31 @@ class ViewAd : AppCompatActivity() {
         mapView = findViewById(R.id.map_view)
         mapView.setTileSource(TileSourceFactory.MAPNIK)
         mapView.setMultiTouchControls(false)
-
         val point = GeoPoint(lat, lng)
         mapView.controller.setZoom(15.0)
         mapView.controller.setCenter(point)
-
         val marker = Marker(mapView)
         marker.position = point
         marker.title = locationName
         mapView.overlays.add(marker)
-
         findViewById<android.view.View>(R.id.map_overlay).setOnClickListener {
             val uri = Uri.parse("geo:$lat,$lng?q=$lat,$lng($locationName)")
             try {
                 val mapIntent = Intent(Intent.ACTION_VIEW, uri)
                 mapIntent.setPackage("com.google.android.apps.maps")
                 startActivity(mapIntent)
-            } catch (e: Exception) {
-                startActivity(Intent(Intent.ACTION_VIEW, uri))
-            }
+            } catch (e: Exception) { startActivity(Intent(Intent.ACTION_VIEW, uri)) }
         }
     }
 
     private fun loadSellerDetails(userId: Int) {
         val db = dbHelper.readableDatabase
-        // FETCHING Both Profile Info and Friend's FCM Token
         val cursor = db.rawQuery("SELECT full_name, phone_number, profile_image_url, fcm_token FROM users WHERE user_id = ?", arrayOf(userId.toString()))
 
         if (cursor.moveToFirst()) {
             val name = cursor.getString(0)
             sellerPhoneNumber = cursor.getString(1)
             val imgPath = cursor.getString(2)
-            // Friend's Feature: Save Token
             sellerFcmToken = cursor.getString(3) ?: ""
 
             findViewById<TextView>(R.id.seller_name).text = name
@@ -378,8 +339,6 @@ class ViewAd : AppCompatActivity() {
                     Glide.with(this).load(fullUrl).placeholder(R.drawable.ic_profile_placeholder).into(sellerImgView)
                 }
             }
-
-            // Friend's Feature: Go to Profile on click
             val openProfile = {
                 val intent = Intent(this, OtherAds::class.java)
                 intent.putExtra("USER_ID", userId)
@@ -387,9 +346,6 @@ class ViewAd : AppCompatActivity() {
             }
             sellerImgView.setOnClickListener { openProfile() }
             findViewById<TextView>(R.id.seller_name).setOnClickListener { openProfile() }
-
-        } else {
-            findViewById<TextView>(R.id.seller_name).text = "Unknown User ($userId)"
         }
         cursor.close()
     }
@@ -397,19 +353,14 @@ class ViewAd : AppCompatActivity() {
     private fun loadAdImages(id: Int) {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT image_url FROM ad_images WHERE ad_id = ?", arrayOf(id.toString()))
-
         val imagePaths = ArrayList<String>()
         if (cursor.moveToFirst()) {
-            do {
-                imagePaths.add(cursor.getString(0))
-            } while (cursor.moveToNext())
+            do { imagePaths.add(cursor.getString(0)) } while (cursor.moveToNext())
         }
         cursor.close()
 
-        // RESTORED: Counter Logic
         val viewPager = findViewById<ViewPager2>(R.id.viewPagerImageSlider)
         viewPager.adapter = ImageSliderAdapter(imagePaths)
-
         val countText = findViewById<TextView>(R.id.photo_count_text)
         countText.text = "1/${imagePaths.size}"
 
