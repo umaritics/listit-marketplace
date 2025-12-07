@@ -6,16 +6,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".Buying">
+
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/buying_bg">
+
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/topbar"
-            android:background="@drawable/top_bar_back"
-            >
+            android:background="@drawable/top_bar_back">
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -23,15 +24,27 @@
                 android:textStyle="bold"
                 android:textColor="@color/white"
                 android:layout_centerHorizontal="true"
-                android:text="Listit"
-                />
+                android:text="Listit" />
         </RelativeLayout>
+
+        <TextView
+            android:id="@+id/chats_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/topbar"
+            android:layout_marginTop="5dp"
+            android:text="Chats"
+            android:textSize="16sp"
+            android:fontFamily="@font/rubik_bold"
+            android:textAlignment="center"/>
+
         <View
             android:id="@+id/topDiv"
-            android:layout_below="@+id/topbar"
+            android:layout_below="@+id/chats_title"
             android:layout_width="match_parent"
             android:layout_height="2dp"
             android:background="@color/grey"/>
+
         <LinearLayout
             android:id="@+id/nav"
             android:layout_width="match_parent"
@@ -39,11 +52,11 @@
             android:orientation="horizontal"
             android:layout_below="@id/topDiv"
             android:weightSum="3">
+
             <RelativeLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                >
+                android:layout_weight="1">
                 <TextView
                     android:id="@+id/all_text"
                     android:layout_width="wrap_content"
@@ -57,13 +70,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="2dp"
                     android:background="@color/light_grey"/>
-
             </RelativeLayout>
+
             <RelativeLayout
+                android:id="@+id/tab_buying"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                >
+                android:layout_weight="1">
                 <TextView
                     android:id="@+id/buying_text"
                     android:layout_width="wrap_content"
@@ -73,17 +86,18 @@
                     android:layout_centerInParent="true"
                     android:fontFamily="@font/rubik_bold"/>
                 <View
+                    android:id="@+id/underline_buying"
                     android:layout_below="@id/buying_text"
                     android:layout_width="match_parent"
                     android:layout_height="2dp"
                     android:background="@color/orange"/>
-
             </RelativeLayout>
+
             <RelativeLayout
+                android:id="@+id/tab_selling"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                >
+                android:layout_weight="1">
                 <TextView
                     android:id="@+id/selling_text"
                     android:layout_width="wrap_content"
@@ -93,119 +107,79 @@
                     android:layout_centerInParent="true"
                     android:fontFamily="@font/rubik_bold"/>
                 <View
+                    android:id="@+id/underline_selling"
                     android:layout_below="@id/selling_text"
                     android:layout_width="match_parent"
                     android:layout_height="2dp"
                     android:background="@color/light_grey"/>
-
             </RelativeLayout>
-
         </LinearLayout>
-        <LinearLayout
-            android:id="@+id/filters_section"
-            android:layout_below="@+id/nav"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:weightSum="5"
-            android:layout_marginTop="5dp">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="All"
-                android:textSize="12dp"
-                android:textColor="@color/black"
-                android:background="@drawable/rounded_orange_border"
-                android:textAlignment="center"
-                android:fontFamily="@font/rubik_bold"
-                android:backgroundTint="@color/light_green"
-                android:paddingVertical="5dp"
-                android:layout_marginHorizontal="2dp"/>
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Meeting"
-                android:textSize="12dp"
-                android:textColor="@color/black"
-                android:background="@drawable/rounded_orange_border"
-                android:textAlignment="center"
-                android:fontFamily="@font/rubik_bold"
-                android:paddingVertical="5dp"
-                android:layout_marginHorizontal="2dp"/>
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Unread"
-                android:textSize="12dp"
-                android:textColor="@color/black"
-                android:background="@drawable/rounded_orange_border"
-                android:textAlignment="center"
-                android:fontFamily="@font/rubik_bold"
-                android:paddingVertical="5dp"
-                android:layout_marginHorizontal="2dp"/>
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Important"
-                android:textSize="12dp"
-                android:textColor="@color/black"
-                android:background="@drawable/rounded_orange_border"
-                android:textAlignment="center"
-                android:fontFamily="@font/rubik_bold"
-                android:paddingVertical="5dp"
-                android:layout_marginHorizontal="2dp"/>
 
-
-        </LinearLayout>
         <RelativeLayout
-            android:id="@+id/chats_list"
+            android:id="@+id/view_buying_content"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_below="@id/filters_section"
+            android:layout_below="@id/nav"
             android:layout_above="@id/bottom_nav"
-            android:paddingVertical="10dp">
-            <RelativeLayout
+            android:paddingVertical="10dp"
+            android:visibility="visible">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_buying_chats"
                 android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+
+            <TextView
+                android:id="@+id/empty_buying"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:id="@+id/chatbox"
-                android:background="@drawable/rounded_orange_border"
-                android:backgroundTint="@color/light_orange"
-                android:layout_marginHorizontal="10dp"
-                >
-                <ImageView
-                    android:id="@+id/user_pfp"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:background="@drawable/user_pfp"/>
+                android:layout_centerInParent="true"
+                android:text="No active chats yet."
+                android:visibility="gone"/>
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/view_selling_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/nav"
+            android:layout_above="@id/bottom_nav"
+            android:paddingVertical="10dp"
+            android:visibility="gone">
+
+            <RelativeLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true">
                 <TextView
-                    android:id="@+id/username"
+                    android:id="@+id/selling_text1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_toRightOf="@id/user_pfp"
-                    android:layout_marginStart="20dp"
-                    android:text="Muhammad"
+                    android:text="You've got no messages so far!"
                     android:fontFamily="@font/rubik_bold"
-                    android:textSize="16sp"
-                    android:textColor="@color/black"
-                    />
+                    android:layout_centerHorizontal="true"/>
                 <TextView
-                    android:id="@+id/last_seen"
+                    android:id="@+id/selling_text2"
+                    android:layout_below="@+id/selling_text1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_toRightOf="@id/user_pfp"
-                    android:layout_below="@id/username"
-                    android:text="Last seen yesterday"
-                    android:layout_marginStart="20dp"
+                    android:text="As soon as someone sends you a message, you'll see it here."
                     android:fontFamily="@font/rubik_regular"
-                    android:textColor="@color/grey"
-                    />
-
+                    android:layout_marginTop="8dp"/>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_start_selling"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/selling_text2"
+                    android:layout_centerHorizontal="true"
+                    android:text="Start Selling"
+                    app:cornerRadius="5dp"
+                    android:layout_marginTop="15dp"
+                    android:paddingHorizontal="30dp"
+                    android:backgroundTint="@color/orange"
+                    android:textColor="@color/white"
+                    android:fontFamily="@font/rubik_regular"/>
             </RelativeLayout>
-
         </RelativeLayout>
 
         <LinearLayout
@@ -213,94 +187,51 @@
             android:layout_width="match_parent"
             android:layout_height="70dp"
             android:layout_alignParentBottom="true"
-            android:layout_marginBottom="0dp"
             android:background="#FFFFFF"
             android:gravity="center"
             android:orientation="horizontal"
             android:weightSum="5">
 
-            <!-- Home -->
-            <LinearLayout
-
+            <ImageView
+                android:id="@+id/home_ic"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="22dp"
                 android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
+                android:contentDescription="Home"
+                android:src="@drawable/ic_home" />
 
-                <ImageView
-                    android:id="@+id/home_ic"
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:contentDescription="Home"
-                    android:src="@drawable/ic_home" />
-            </LinearLayout>
-
-            <!-- Chat -->
-            <LinearLayout
+            <ImageView
+                android:id="@+id/chat_ic"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="22dp"
                 android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
+                android:contentDescription="Chat"
+                android:src="@drawable/ic_chat"
+                app:tint="@color/orange"/>
 
-                <ImageView
-                    android:id="@+id/chat_ic"
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:contentDescription="Chat"
-                    android:src="@drawable/ic_chat" />
-            </LinearLayout>
-
-            <!-- Add -->
-            <LinearLayout
+            <ImageView
+                android:id="@+id/add_ic"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="36dp"
                 android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
+                android:contentDescription="Add"
+                android:src="@drawable/ic_add_circle" />
 
-                <ImageView
-                    android:id="@+id/add_ic"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:contentDescription="Add"
-                    android:src="@drawable/ic_add_circle" />
-            </LinearLayout>
-
-            <!-- Favorite -->
-            <LinearLayout
+            <ImageView
+                android:id="@+id/fav_ic"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="22dp"
                 android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
+                android:contentDescription="Favorite"
+                android:src="@drawable/ic_favorite" />
 
-                <ImageView
-                    android:id="@+id/fav_ic"
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:contentDescription="Favorite"
-                    android:src="@drawable/ic_favorite" />
-            </LinearLayout>
-
-            <!-- Profile -->
-            <LinearLayout
+            <ImageView
+                android:id="@+id/prof_ic"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="22dp"
                 android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <ImageView
-                    android:id="@+id/prof_ic"
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:contentDescription="Profile"
-                    android:src="@drawable/ic_profile" />
-            </LinearLayout>
-
+                android:contentDescription="Profile"
+                android:src="@drawable/ic_profile" />
         </LinearLayout>
     </RelativeLayout>
-
 </androidx.constraintlayout.widget.ConstraintLayout>

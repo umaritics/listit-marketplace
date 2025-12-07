@@ -1,6 +1,7 @@
 package com.example.listit
 
 import ListItDbHelper
+import android.content.ContentValues
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -14,7 +15,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.viewpager2.widget.ViewPager2
+import com.android.volley.Request
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
 import com.bumptech.glide.Glide
+import org.json.JSONObject
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -28,6 +33,8 @@ class ViewAd : AppCompatActivity() {
     private var adId: Int = -1
     private var sellerPhoneNumber: String = ""
     private lateinit var mapView: MapView
+
+    private var sellerId: Int = -1 // Add this at top of class
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,6 +69,39 @@ class ViewAd : AppCompatActivity() {
             }
         }
 
+
+        // Inside ViewAd.kt onCreate...
+
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_chat).setOnClickListener {
+            val currentUserEmail = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email
+            if (currentUserEmail == null) {
+                Toast.makeText(this, "Please login to chat", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val currentUserId = getUserIdByEmail(currentUserEmail)
+            // Seller ID was loaded in loadAdDetails, ensure it's accessible (make it a class property)
+            // assuming 'userId' from 'loadAdDetails' is stored in a class var 'sellerId'
+
+            // Note: You need to promote the local userId variable in loadAdDetails to a class property: private var sellerId = -1
+
+            if (currentUserId == sellerId) {
+                Toast.makeText(this, "You cannot chat with yourself", Toast.LENGTH_SHORT).show()
+            } else {
+                initiateChat(currentUserId, sellerId)
+            }
+        }
+
+// Add these functions to ViewAd class:
+
+
+
+// Update loadAdDetails to save sellerId
+// ... inside loadAdDetails ...
+// sellerId = cursor.getInt(cursor.getColumnIndexOrThrow("user_id"))
+
+
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -80,10 +120,11 @@ class ViewAd : AppCompatActivity() {
             val loc = cursor.getString(cursor.getColumnIndexOrThrow("location_address"))
             val condition = cursor.getString(cursor.getColumnIndexOrThrow("condition_type"))
             val category = cursor.getString(cursor.getColumnIndexOrThrow("category"))
-            val userId = cursor.getInt(cursor.getColumnIndexOrThrow("user_id"))
-            val date = cursor.getString(cursor.getColumnIndexOrThrow("created_at"))
 
-            // Map Coordinates
+            // --- FIX IS HERE: Assign to the class-level variable 'sellerId' ---
+            sellerId = cursor.getInt(cursor.getColumnIndexOrThrow("user_id"))
+
+            val date = cursor.getString(cursor.getColumnIndexOrThrow("created_at"))
             val lat = cursor.getDouble(cursor.getColumnIndexOrThrow("lat"))
             val lng = cursor.getDouble(cursor.getColumnIndexOrThrow("lng"))
 
@@ -96,10 +137,86 @@ class ViewAd : AppCompatActivity() {
             findViewById<TextView>(R.id.date).text = date.take(10)
 
             setupMap(lat, lng, loc)
-            loadSellerDetails(userId)
+            loadSellerDetails(sellerId) // Use the correct variable here too
         }
         cursor.close()
     }
+
+
+    private fun getUserIdByEmail(email: String): Int {
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery("SELECT user_id FROM users WHERE email = ?", arrayOf(email))
+        var id = -1
+        if (cursor.moveToFirst()) id = cursor.getInt(0)
+        cursor.close()
+        return id
+    }
+
+    private fun initiateChat(buyerId: Int, sellerId: Int) {
+        val dbRead = dbHelper.readableDatabase
+        // Check if chat exists
+        val cursor = dbRead.rawQuery("SELECT chat_id FROM chat_rooms WHERE ad_id = ? AND buyer_id = ? AND seller_id = ?",
+            arrayOf(adId.toString(), buyerId.toString(), sellerId.toString()))
+
+        var chatId = -1
+        if (cursor.moveToFirst()) {
+            chatId = cursor.getInt(0)
+        }
+        cursor.close()
+
+        if (chatId == -1) {
+            // Create new chat room
+            val dbWrite = dbHelper.writableDatabase
+            val values = ContentValues().apply {
+                put("ad_id", adId)
+                put("buyer_id", buyerId)
+                put("seller_id", sellerId)
+                put("created_at", System.currentTimeMillis().toString())
+            }
+            chatId = dbWrite.insert(ListItDbHelper.TABLE_CHAT_ROOMS, null, values).toInt()
+        }
+
+
+        // ADD THIS NETWORK REQUEST TO CREATE CHAT ON SERVER:
+        val queue = Volley.newRequestQueue(this)
+        val url = Constants.BASE_URL + "create_chat.php"
+
+        val request = object : StringRequest(
+            Request.Method.POST, url,
+            { response ->
+                try {
+                    val json = JSONObject(response)
+                    if (json.getString("status") == "success") {
+                        val serverChatId = json.getInt("chat_id")
+
+                        // Navigate to Chat Screen
+                        val intent = Intent(this, Chat_message::class.java)
+                        intent.putExtra("CHAT_ID", serverChatId) // Use Server ID to ensure syncing works
+                        intent.putExtra("OTHER_NAME", findViewById<TextView>(R.id.seller_name).text.toString())
+                        startActivity(intent)
+                    }
+                } catch (e: Exception) { e.printStackTrace() }
+            },
+            { error -> Toast.makeText(this, "Network Error", Toast.LENGTH_SHORT).show() }
+        ) {
+            override fun getParams(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["ad_id"] = adId.toString()
+                params["buyer_id"] = buyerId.toString()
+                params["seller_id"] = sellerId.toString()
+                return params
+            }
+        }
+        queue.add(request)
+
+
+        // Open Chat Screen
+        val intent = Intent(this, Chat_message::class.java)
+        intent.putExtra("CHAT_ID", chatId)
+        intent.putExtra("OTHER_NAME", findViewById<TextView>(R.id.seller_name).text.toString())
+        startActivity(intent)
+    }
+
 
     private fun setupMap(lat: Double, lng: Double, locationName: String) {
         mapView = findViewById(R.id.map_view)
