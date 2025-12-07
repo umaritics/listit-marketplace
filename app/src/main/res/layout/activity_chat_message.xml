@@ -47,6 +47,18 @@
                     android:fontFamily="@font/rubik_bold"
                     android:textSize="16sp"
                     android:textColor="@color/black"/>
+
+                <ImageView
+                    android:id="@+id/btn_video_call"                    android:layout_width="24dp"
+                    android:layout_height="26dp"
+                    android:src="@drawable/ic_call"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="10dp"
+                    app:tint="@color/orange"
+                    android:padding="0dp" />
+
+
             </RelativeLayout>
         </RelativeLayout>
 
