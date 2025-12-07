@@ -16,36 +16,37 @@
             android:id="@+id/topNav"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="5dp"
-            android:paddingBottom="5dp">
+            android:padding="10dp">
             <ImageView
                 android:id="@+id/back_btn"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
                 android:src="@drawable/ic_back_white"
-                android:layout_margin="10dp"
                 android:layout_centerVertical="true"
-                app:tint="@color/black" />
+                app:tint="@color/orange" />
 
             <RelativeLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
                 android:layout_toEndOf="@id/back_btn"
                 android:layout_centerVertical="true">
                 <ImageView
                     android:id="@+id/user_pfp"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:src="@drawable/ic_profile_placeholder"/> <TextView
-                android:id="@+id/username"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_toEndOf="@id/user_pfp"
-                android:text="User Name"
-                android:layout_marginStart="10dp"
-                android:fontFamily="@font/rubik_bold"
-                android:textSize="16sp"
-                android:textColor="@color/black"/>
+                    android:src="@drawable/ic_profile_placeholder"/>
+                <TextView
+                    android:id="@+id/username"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toEndOf="@id/user_pfp"
+                    android:layout_centerVertical="true"
+                    android:text="User Name"
+                    android:layout_marginStart="10dp"
+                    android:fontFamily="@font/rubik_bold"
+                    android:textSize="16sp"
+                    android:textColor="@color/black"/>
             </RelativeLayout>
         </RelativeLayout>
 
@@ -64,27 +65,131 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
-            android:padding="8dp"
+            android:padding="10dp"
             android:background="#FFFFFF">
 
-            <EditText
-                android:id="@+id/messageEditText"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/messageInputLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_toStartOf="@id/offer_btn"
-                android:hint="Type a message..."
-                android:padding="12dp"
-                android:background="@drawable/rounded_orange_border"
-                android:layout_marginEnd="10dp"/>
+                app:boxBackgroundMode="outline"
+                app:boxBackgroundColor="@color/light_orange"
+                app:boxCornerRadiusTopStart="16dp"
+                app:boxCornerRadiusTopEnd="16dp"
+                app:boxCornerRadiusBottomStart="16dp"
+                app:boxCornerRadiusBottomEnd="16dp"
+                app:boxStrokeColor="@color/orange"
+                app:boxStrokeWidth="1.5dp"
+                app:endIconDrawable="@drawable/send"
+                app:endIconContentDescription="Send"
+                app:endIconTint="@color/orange"
+                app:endIconMode="custom"
+                android:layout_marginEnd="10dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/messageEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:hint="@string/type_a_message"
+                    android:textColorHint="@color/white"
+                    android:textColor="@color/black"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp" />
+            </com.google.android.material.textfield.TextInputLayout>
 
             <ImageView
                 android:id="@+id/offer_btn"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_alignParentEnd="true"
+                android:layout_width="43dp"
+                android:layout_height="43dp"
                 android:layout_centerVertical="true"
-                android:src="@drawable/send"
-                app:tint="@color/orange"/>
-        </RelativeLayout>
+                android:layout_alignParentEnd="true"
+                android:src="@drawable/ob_pic3"/> </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/offer_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/top_rounded_rectangle"
+            android:backgroundTint="@color/orange"
+            android:layout_alignParentBottom="true"
+            android:paddingBottom="20dp"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true"> <ImageView
+            android:id="@+id/slide_handle"
+            android:layout_width="103dp"
+            android:layout_height="6dp"
+            android:background="@drawable/offer_slidebar"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="10dp"/>
+
+            <ImageView
+                android:id="@+id/close_offer"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_close_white"
+                android:layout_alignParentEnd="true"
+                android:layout_margin="10dp"/>
+
+            <TextView
+                android:id="@+id/offer_text1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/make_an_offer"
+                android:textSize="16sp"
+                android:layout_centerHorizontal="true"
+                android:textColor="@color/white"
+                android:fontFamily="@font/rubik_bold"
+                android:layout_below="@id/slide_handle"
+                android:layout_marginTop="10dp"/>
+
+            <RelativeLayout
+                android:id="@+id/offer_input_section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/offer_text1"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="20dp">
+
+                <TextView
+                    android:id="@+id/offer_currency"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="18sp"
+                    android:textColor="@color/grey"
+                    android:layout_centerVertical="true"
+                    android:text="@string/rs"
+                    android:fontFamily="@font/rubik_extrabold"/>
+
+                <EditText
+                    android:id="@+id/offer_input"
+                    android:layout_width="150dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_toEndOf="@id/offer_currency"
+                    android:hint="0"
+                    android:textColorHint="#DDDDDD"
+                    android:inputType="number"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:fontFamily="@font/rubik_bold"/>
+            </RelativeLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_send_offer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/offer_input_section"
+                android:layout_marginHorizontal="30dp"
+                android:layout_marginTop="20dp"
+                android:text="@string/send_offer"
+                android:fontFamily="@font/rubik_bold"
+                android:textSize="16sp"
+                app:cornerRadius="5dp"
+                android:textColor="@color/orange"
+                android:backgroundTint="#FFF0E0"/> </RelativeLayout>
+
     </RelativeLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

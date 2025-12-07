@@ -51,7 +51,8 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_below="@id/topDiv"
-            android:weightSum="3">
+            android:weightSum="3"
+            android:paddingBottom="5dp">
 
             <RelativeLayout
                 android:layout_width="0dp"
@@ -77,6 +78,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1">
+
                 <TextView
                     android:id="@+id/buying_text"
                     android:layout_width="wrap_content"
@@ -85,6 +87,23 @@
                     android:text="Buying"
                     android:layout_centerInParent="true"
                     android:fontFamily="@font/rubik_bold"/>
+
+                <TextView
+                    android:id="@+id/badge_buying"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_toEndOf="@id/buying_text"
+                    android:layout_alignTop="@id/buying_text"
+                    android:layout_marginStart="2dp"
+                    android:layout_marginTop="-5dp"
+                    android:background="@drawable/badge_background"
+                    android:gravity="center"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:fontFamily="@font/rubik_bold"
+                    android:visibility="gone"/>
+
                 <View
                     android:id="@+id/underline_buying"
                     android:layout_below="@id/buying_text"
@@ -98,6 +117,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1">
+
                 <TextView
                     android:id="@+id/selling_text"
                     android:layout_width="wrap_content"
@@ -106,6 +126,23 @@
                     android:text="Selling"
                     android:layout_centerInParent="true"
                     android:fontFamily="@font/rubik_bold"/>
+
+                <TextView
+                    android:id="@+id/badge_selling"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_toEndOf="@id/selling_text"
+                    android:layout_alignTop="@id/selling_text"
+                    android:layout_marginStart="2dp"
+                    android:layout_marginTop="-5dp"
+                    android:background="@drawable/badge_background"
+                    android:gravity="center"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:fontFamily="@font/rubik_bold"
+                    android:visibility="gone"/>
+
                 <View
                     android:id="@+id/underline_selling"
                     android:layout_below="@id/selling_text"

@@ -2,11 +2,10 @@ package com.example.listit
 
 import ListItDbHelper
 import android.content.ContentValues
-import android.content.DialogInterface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
+import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
@@ -21,8 +20,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.android.volley.Request
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import com.bumptech.glide.Glide // Added Import
 import com.google.firebase.auth.FirebaseAuth
 import org.json.JSONObject
+import java.io.File // Added Import
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,35 +54,88 @@ class Chat_message : AppCompatActivity() {
 
         dbHelper = ListItDbHelper(this)
         auth = FirebaseAuth.getInstance()
-
         chatId = intent.getIntExtra("CHAT_ID", -1)
+
+        markMessagesAsRead()
+
         val otherName = intent.getStringExtra("OTHER_NAME") ?: "User"
 
-        // Set UI
+        // --- FIX STARTS HERE: Get Image string ---
+        val otherImage = intent.getStringExtra("OTHER_IMAGE") ?: ""
+
         findViewById<TextView>(R.id.username).text = otherName
         findViewById<ImageView>(R.id.back_btn).setOnClickListener { finish() }
 
-        // Get User ID
-        val email = auth.currentUser?.email
-        if (email != null) {
-            currentUserId = getUserIdByEmail(email)
+        // --- FIX CONTINUES: Load Profile Pic into Header ---
+        val pfpView = findViewById<ImageView>(R.id.user_pfp)
+
+        if (otherImage.isNotEmpty()) {
+            if (otherImage.startsWith("/")) {
+                // Local File
+                val imgFile = File(otherImage)
+                if (imgFile.exists()) {
+                    Glide.with(this)
+                        .load(imgFile)
+                        .circleCrop()
+                        .into(pfpView)
+                }
+            } else {
+                // URL
+                val fullUrl = if (otherImage.startsWith("http")) otherImage else Constants.BASE_URL + otherImage
+                Glide.with(this)
+                    .load(fullUrl)
+                    .circleCrop()
+                    .placeholder(R.drawable.ic_profile_placeholder)
+                    .into(pfpView)
+            }
         }
+        // --- FIX ENDS ---
+
+        val email = auth.currentUser?.email
+        if (email != null) currentUserId = getUserIdByEmail(email)
 
         setupRecyclerView()
-
-        // 1. Load Local Messages immediately
         loadMessages()
-
-        // 2. Start Syncing from Server (This fixes the empty chat on reinstall)
         handler.post(refreshRunnable)
 
-        // Send Button
-        findViewById<ImageView>(R.id.offer_btn).setOnClickListener {
+        // --- NORMAL SEND LOGIC ---
+        findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.messageInputLayout).setEndIconOnClickListener {
             val input = findViewById<EditText>(R.id.messageEditText)
             val text = input.text.toString().trim()
             if (text.isNotEmpty()) {
                 sendMessage(text)
                 input.setText("")
+            }
+        }
+
+        // --- OFFER LOGIC ---
+        val offerPanel = findViewById<android.widget.RelativeLayout>(R.id.offer_panel)
+        val offerBtn = findViewById<ImageView>(R.id.offer_btn) // The Icon
+        val closeOffer = findViewById<ImageView>(R.id.close_offer)
+        val sendOfferBtn = findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_send_offer)
+        val offerInput = findViewById<EditText>(R.id.offer_input)
+
+        // 1. Open Panel
+        offerBtn.setOnClickListener {
+            offerPanel.visibility = View.VISIBLE
+        }
+
+        // 2. Close Panel
+        closeOffer.setOnClickListener {
+            offerPanel.visibility = View.GONE
+        }
+
+        // 3. Send Offer
+        sendOfferBtn.setOnClickListener {
+            val price = offerInput.text.toString().trim()
+            if (price.isNotEmpty()) {
+                // Send as special formatted message
+                sendMessage("OFFER:$price")
+                offerPanel.visibility = View.GONE
+                offerInput.setText("")
+                Toast.makeText(this, "Offer Sent!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Enter a price", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -97,7 +151,7 @@ class Chat_message : AppCompatActivity() {
         handler.removeCallbacks(refreshRunnable) // Stop timer when closing activity
     }
 
-    // --- NEW FUNCTION: Sync from Server ---
+    // --- Sync from Server ---
     private fun syncMessagesFromServer() {
         val queue = Volley.newRequestQueue(this)
         val url = Constants.BASE_URL + "get_chat_history.php?chat_id=$chatId"
@@ -122,9 +176,8 @@ class Chat_message : AppCompatActivity() {
                             val check = db.rawQuery("SELECT message_id FROM messages WHERE message_id = ?", arrayOf(serverMsgId.toString()))
                             if (!check.moveToFirst()) {
                                 // NEW MESSAGE: Insert it using the SERVER ID
-                                // This is crucial so Edit/Delete works later
                                 val values = ContentValues().apply {
-                                    put("message_id", serverMsgId) // Force local ID to match Server ID
+                                    put("message_id", serverMsgId)
                                     put("chat_id", chatId)
                                     put("sender_id", sender)
                                     put("message_text", serverText)
@@ -134,7 +187,7 @@ class Chat_message : AppCompatActivity() {
                                 db.insert(ListItDbHelper.TABLE_MESSAGES, null, values)
                                 hasNewData = true
                             } else {
-                                // UPDATE EXISTING: In case text was edited on server
+                                // UPDATE EXISTING
                                 val values = ContentValues().apply {
                                     put("message_text", serverText)
                                 }
@@ -201,7 +254,6 @@ class Chat_message : AppCompatActivity() {
             put("created_at", timestamp)
             put("is_read", 0)
         }
-        // Save the local Row ID so we can update it later
         val localRowId = db.insert(ListItDbHelper.TABLE_MESSAGES, null, values)
         loadMessages()
 
@@ -212,15 +264,11 @@ class Chat_message : AppCompatActivity() {
         val request = object : StringRequest(Request.Method.POST, url,
             { response ->
                 try {
-                    // 3. ON SUCCESS: Update Local ID to match Server ID
                     val json = JSONObject(response)
                     if (json.getString("status") == "success") {
                         val serverId = json.getInt("message_id")
-
                         val updateValues = ContentValues().apply { put("message_id", serverId) }
                         db.update(ListItDbHelper.TABLE_MESSAGES, updateValues, "rowid = ?", arrayOf(localRowId.toString()))
-
-                        // Trigger sync to be safe
                         loadMessages()
                     }
                 } catch (e: Exception) { e.printStackTrace() }
@@ -252,18 +300,16 @@ class Chat_message : AppCompatActivity() {
     }
 
     private fun deleteMessage(message: Message) {
-        // 1. Delete Locally
         val db = dbHelper.writableDatabase
         db.delete(ListItDbHelper.TABLE_MESSAGES, "message_id = ?", arrayOf(message.id.toString()))
         loadMessages()
         Toast.makeText(this, "Message deleted", Toast.LENGTH_SHORT).show()
 
-        // 2. Delete on Server
         val queue = Volley.newRequestQueue(this)
         val url = Constants.BASE_URL + "delete_message.php"
 
         val request = object : StringRequest(Request.Method.POST, url,
-            { /* Success - Do nothing */ },
+            { },
             { error -> Toast.makeText(this, "Failed to delete on server", Toast.LENGTH_SHORT).show() }
         ) {
             override fun getParams(): MutableMap<String, String> {
@@ -291,18 +337,16 @@ class Chat_message : AppCompatActivity() {
     }
 
     private fun updateMessage(msgId: Int, newText: String) {
-        // 1. Update Locally
         val db = dbHelper.writableDatabase
         val values = ContentValues().apply { put("message_text", newText) }
         db.update(ListItDbHelper.TABLE_MESSAGES, values, "message_id = ?", arrayOf(msgId.toString()))
         loadMessages()
 
-        // 2. Update on Server
         val queue = Volley.newRequestQueue(this)
         val url = Constants.BASE_URL + "edit_message.php"
 
         val request = object : StringRequest(Request.Method.POST, url,
-            { /* Success */ },
+            { },
             { error -> Toast.makeText(this, "Failed to edit on server", Toast.LENGTH_SHORT).show() }
         ) {
             override fun getParams(): MutableMap<String, String> {
@@ -314,6 +358,16 @@ class Chat_message : AppCompatActivity() {
         }
         queue.add(request)
     }
+
+    private fun markMessagesAsRead() {
+        val db = dbHelper.writableDatabase
+        val values = ContentValues().apply {
+            put("is_read", 1)
+        }
+        // Update all messages in THIS chat to be "read"
+        db.update(ListItDbHelper.TABLE_MESSAGES, values, "chat_id = ?", arrayOf(chatId.toString()))
+    }
+
     private fun getUserIdByEmail(email: String): Int {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT user_id FROM users WHERE email = ?", arrayOf(email))
