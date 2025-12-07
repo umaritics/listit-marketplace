@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 
 class ImageAdapter(
     private val images: ArrayList<Uri>,
@@ -24,7 +25,12 @@ class ImageAdapter(
 
     override fun onBindViewHolder(holder: ImageViewHolder, position: Int) {
         val uri = images[position]
-        holder.image.setImageURI(uri)
+
+        // FIX: Use Glide to handle both File URIs and HTTP URLs
+        Glide.with(holder.itemView.context)
+            .load(uri)
+            .placeholder(R.drawable.sample_image)
+            .into(holder.image)
 
         holder.btnRemove.setOnClickListener {
             onDeleteClick(position)

@@ -19,6 +19,7 @@ import com.android.volley.toolbox.Volley
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging // Added
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -97,6 +98,9 @@ class Login_email : AppCompatActivity() {
                         val phone = data.getString("phone_number")
                         val serverRelativePath = data.optString("profile_image_url", "")
 
+                        // NEW: Update FCM Token for this user
+                        updateFCMToken(mysqlId)
+
                         // 1. Save User Profile Logic
                         if (serverRelativePath.isNotEmpty()) {
                             downloadAndSaveImage(mysqlId, fullName, email, phone, serverRelativePath)
@@ -108,8 +112,6 @@ class Login_email : AppCompatActivity() {
                         if (jsonResponse.has("saved_ads")) {
                             val savedArray = jsonResponse.getJSONArray("saved_ads")
                             val db = dbHelper.writableDatabase
-
-                            // Clear old saved ads to avoid stale data on re-login
                             db.execSQL("DELETE FROM saved_ads WHERE user_id = $mysqlId AND is_synced = 1")
 
                             for (i in 0 until savedArray.length()) {
@@ -118,14 +120,13 @@ class Login_email : AppCompatActivity() {
                                     put("user_id", mysqlId)
                                     put("ad_id", adId)
                                     put("is_deleted", 0)
-                                    put("is_synced", 1) // It came from server, so it's synced
+                                    put("is_synced", 1)
                                     put("created_at", System.currentTimeMillis().toString())
                                 }
                                 db.insert(ListItDbHelper.TABLE_SAVED_ADS, null, values)
                             }
                         }
 
-                        // Delay navigation slightly if no image download to ensure DB write finishes
                         if (serverRelativePath.isEmpty()) {
                             goToHome(fullName)
                         }
@@ -151,6 +152,26 @@ class Login_email : AppCompatActivity() {
         }
 
         queue.add(stringRequest)
+    }
+
+    private fun updateFCMToken(userId: Int) {
+        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+            val queue = Volley.newRequestQueue(this)
+            val url = Constants.BASE_URL + "update_token.php"
+
+            val request = object : StringRequest(Request.Method.POST, url,
+                { Log.d("FCM", "Token Updated on Server") },
+                { Log.e("FCM", "Failed to update token") }
+            ) {
+                override fun getParams(): MutableMap<String, String> {
+                    val params = HashMap<String, String>()
+                    params["user_id"] = userId.toString()
+                    params["fcm_token"] = token
+                    return params
+                }
+            }
+            queue.add(request)
+        }
     }
 
     private fun downloadAndSaveImage(id: Int, name: String, email: String, phone: String, relativePath: String) {

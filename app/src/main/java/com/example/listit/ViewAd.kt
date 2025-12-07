@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.preference.PreferenceManager
+import android.util.Log
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -14,12 +15,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.android.volley.Request
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.bumptech.glide.Glide
-import org.json.JSONObject
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -30,27 +33,34 @@ import java.io.File
 class ViewAd : AppCompatActivity() {
 
     private lateinit var dbHelper: ListItDbHelper
+
+    private lateinit var auth: FirebaseAuth
     private var adId: Int = -1
     private var sellerPhoneNumber: String = ""
-    private lateinit var mapView: MapView
 
-    private var sellerId: Int = -1 // Add this at top of class
+    // NEW: Variable to hold the seller's token
+    private var sellerFcmToken: String = ""
+
+    private lateinit var mapView: MapView
+    private var isSaved = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Init OSM
+        // Initialize OpenStreetMap
         Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
 
         enableEdgeToEdge()
         setContentView(R.layout.activity_view_ad)
 
         dbHelper = ListItDbHelper(this)
+        auth = FirebaseAuth.getInstance()
         adId = intent.getIntExtra("AD_ID", -1)
 
         if (adId != -1) {
             loadAdDetails(adId)
             loadAdImages(adId)
+            checkIfSaved()
         } else {
             Toast.makeText(this, "Error loading ad", Toast.LENGTH_SHORT).show()
             finish()
@@ -58,7 +68,12 @@ class ViewAd : AppCompatActivity() {
 
         findViewById<ImageView>(R.id.back_icon).setOnClickListener { finish() }
 
-        // Call Logic
+        // Heart Click Listener
+        findViewById<ImageView>(R.id.fav_icon).setOnClickListener {
+            toggleSaveState()
+        }
+
+        // Call Button
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_call).setOnClickListener {
             if (sellerPhoneNumber.isNotEmpty()) {
                 val intent = Intent(Intent.ACTION_DIAL)
@@ -69,44 +84,123 @@ class ViewAd : AppCompatActivity() {
             }
         }
 
-
-        // Inside ViewAd.kt onCreate...
-
-        findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_chat).setOnClickListener {
-            val currentUserEmail = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email
-            if (currentUserEmail == null) {
-                Toast.makeText(this, "Please login to chat", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val currentUserId = getUserIdByEmail(currentUserEmail)
-            // Seller ID was loaded in loadAdDetails, ensure it's accessible (make it a class property)
-            // assuming 'userId' from 'loadAdDetails' is stored in a class var 'sellerId'
-
-            // Note: You need to promote the local userId variable in loadAdDetails to a class property: private var sellerId = -1
-
-            if (currentUserId == sellerId) {
-                Toast.makeText(this, "You cannot chat with yourself", Toast.LENGTH_SHORT).show()
-            } else {
-                initiateChat(currentUserId, sellerId)
-            }
-        }
-
-// Add these functions to ViewAd class:
-
-
-
-// Update loadAdDetails to save sellerId
-// ... inside loadAdDetails ...
-// sellerId = cursor.getInt(cursor.getColumnIndexOrThrow("user_id"))
-
-
-
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+    }
+
+    private fun checkIfSaved() {
+        val currentUserEmail = auth.currentUser?.email ?: return
+        val userId = getUserIdByEmail(currentUserEmail)
+
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery("SELECT count(*) FROM saved_ads WHERE user_id = ? AND ad_id = ? AND is_deleted = 0", arrayOf(userId.toString(), adId.toString()))
+
+        if (cursor.moveToFirst()) {
+            isSaved = cursor.getInt(0) > 0
+        }
+        cursor.close()
+        updateFavIcon()
+    }
+
+    private fun updateFavIcon() {
+        val favIcon = findViewById<ImageView>(R.id.fav_icon)
+        favIcon.clearColorFilter()
+
+        if (isSaved) {
+            favIcon.setImageResource(R.drawable.ic_favourite) // Filled
+        } else {
+            favIcon.setImageResource(R.drawable.ic_favorite) // Outline
+        }
+    }
+
+    private fun toggleSaveState() {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            Toast.makeText(this, "Login to save ads", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val userId = getUserIdByEmail(currentUser.email!!)
+        val db = dbHelper.writableDatabase
+
+        isSaved = !isSaved
+        updateFavIcon()
+
+        if (isSaved) {
+            // 1. Save Locally
+            val values = ContentValues().apply {
+                put("user_id", userId)
+                put("ad_id", adId)
+                put("is_deleted", 0)
+                put("is_synced", 0)
+                put("created_at", System.currentTimeMillis().toString())
+            }
+            db.insert(ListItDbHelper.TABLE_SAVED_ADS, null, values)
+
+            // 2. Sync to Server
+            syncSaveToServer(userId, adId, "save")
+
+            // 3. SEND NOTIFICATION (Logic Added Here)
+            if (sellerFcmToken.isNotEmpty()) {
+                val saverName = currentUser.displayName ?: "Someone"
+                // Using lifecycleScope to run the suspend function
+                lifecycleScope.launch {
+                    try {
+                        PushNotificationSender.sendAdSavedNotification(sellerFcmToken, saverName)
+                        Log.d("ViewAd", "Notification sent to seller")
+                    } catch (e: Exception) {
+                        Log.e("ViewAd", "Failed to send notification: ${e.message}")
+                    }
+                }
+            } else {
+                Log.d("ViewAd", "Seller token not found, cannot send notification")
+            }
+
+        } else {
+            // Unsave Logic
+            db.execSQL("UPDATE saved_ads SET is_deleted=1, is_synced=0 WHERE user_id=$userId AND ad_id=$adId")
+            syncSaveToServer(userId, adId, "unsave")
+        }
+    }
+
+    private fun syncSaveToServer(userId: Int, adId: Int, action: String) {
+        val queue = Volley.newRequestQueue(this)
+        val url = Constants.BASE_URL + "save_ad.php"
+
+        val request = object : StringRequest(Request.Method.POST, url,
+            { response ->
+                if (response.contains("success")) {
+                    val db = dbHelper.writableDatabase
+                    if (action == "unsave") {
+                        db.execSQL("DELETE FROM saved_ads WHERE user_id=$userId AND ad_id=$adId")
+                    } else {
+                        db.execSQL("UPDATE saved_ads SET is_synced=1 WHERE user_id=$userId AND ad_id=$adId")
+                    }
+                }
+            },
+            { error -> Log.e("ViewAd", "Sync failed, saved locally") }
+        ) {
+            override fun getParams(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["user_id"] = userId.toString()
+                params["ad_id"] = adId.toString()
+                params["action"] = action
+                return params
+            }
+        }
+        queue.add(request)
+    }
+
+    private fun getUserIdByEmail(email: String): Int {
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery("SELECT user_id FROM users WHERE email = ?", arrayOf(email))
+        var id = -1
+        if (cursor.moveToFirst()) id = cursor.getInt(0)
+        cursor.close()
+        return id
     }
 
     private fun loadAdDetails(id: Int) {
@@ -120,11 +214,9 @@ class ViewAd : AppCompatActivity() {
             val loc = cursor.getString(cursor.getColumnIndexOrThrow("location_address"))
             val condition = cursor.getString(cursor.getColumnIndexOrThrow("condition_type"))
             val category = cursor.getString(cursor.getColumnIndexOrThrow("category"))
-
-            // --- FIX IS HERE: Assign to the class-level variable 'sellerId' ---
-            sellerId = cursor.getInt(cursor.getColumnIndexOrThrow("user_id"))
-
+            val userId = cursor.getInt(cursor.getColumnIndexOrThrow("user_id"))
             val date = cursor.getString(cursor.getColumnIndexOrThrow("created_at"))
+
             val lat = cursor.getDouble(cursor.getColumnIndexOrThrow("lat"))
             val lng = cursor.getDouble(cursor.getColumnIndexOrThrow("lng"))
 
@@ -137,110 +229,29 @@ class ViewAd : AppCompatActivity() {
             findViewById<TextView>(R.id.date).text = date.take(10)
 
             setupMap(lat, lng, loc)
-            loadSellerDetails(sellerId) // Use the correct variable here too
+            loadSellerDetails(userId)
         }
         cursor.close()
     }
-
-
-    private fun getUserIdByEmail(email: String): Int {
-        val db = dbHelper.readableDatabase
-        val cursor = db.rawQuery("SELECT user_id FROM users WHERE email = ?", arrayOf(email))
-        var id = -1
-        if (cursor.moveToFirst()) id = cursor.getInt(0)
-        cursor.close()
-        return id
-    }
-
-    private fun initiateChat(buyerId: Int, sellerId: Int) {
-        val dbRead = dbHelper.readableDatabase
-        // Check if chat exists
-        val cursor = dbRead.rawQuery("SELECT chat_id FROM chat_rooms WHERE ad_id = ? AND buyer_id = ? AND seller_id = ?",
-            arrayOf(adId.toString(), buyerId.toString(), sellerId.toString()))
-
-        var chatId = -1
-        if (cursor.moveToFirst()) {
-            chatId = cursor.getInt(0)
-        }
-        cursor.close()
-
-        if (chatId == -1) {
-            // Create new chat room
-            val dbWrite = dbHelper.writableDatabase
-            val values = ContentValues().apply {
-                put("ad_id", adId)
-                put("buyer_id", buyerId)
-                put("seller_id", sellerId)
-                put("created_at", System.currentTimeMillis().toString())
-            }
-            chatId = dbWrite.insert(ListItDbHelper.TABLE_CHAT_ROOMS, null, values).toInt()
-        }
-
-
-        // ADD THIS NETWORK REQUEST TO CREATE CHAT ON SERVER:
-        val queue = Volley.newRequestQueue(this)
-        val url = Constants.BASE_URL + "create_chat.php"
-
-        val request = object : StringRequest(
-            Request.Method.POST, url,
-            { response ->
-                try {
-                    val json = JSONObject(response)
-                    if (json.getString("status") == "success") {
-                        val serverChatId = json.getInt("chat_id")
-
-                        // Navigate to Chat Screen
-                        val intent = Intent(this, Chat_message::class.java)
-                        intent.putExtra("CHAT_ID", serverChatId) // Use Server ID to ensure syncing works
-                        intent.putExtra("OTHER_NAME", findViewById<TextView>(R.id.seller_name).text.toString())
-                        startActivity(intent)
-                    }
-                } catch (e: Exception) { e.printStackTrace() }
-            },
-            { error -> Toast.makeText(this, "Network Error", Toast.LENGTH_SHORT).show() }
-        ) {
-            override fun getParams(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["ad_id"] = adId.toString()
-                params["buyer_id"] = buyerId.toString()
-                params["seller_id"] = sellerId.toString()
-                return params
-            }
-        }
-        queue.add(request)
-
-
-        // Open Chat Screen
-        val intent = Intent(this, Chat_message::class.java)
-        intent.putExtra("CHAT_ID", chatId)
-        intent.putExtra("OTHER_NAME", findViewById<TextView>(R.id.seller_name).text.toString())
-        startActivity(intent)
-    }
-
 
     private fun setupMap(lat: Double, lng: Double, locationName: String) {
         mapView = findViewById(R.id.map_view)
         mapView.setTileSource(TileSourceFactory.MAPNIK)
-        mapView.setMultiTouchControls(false) // Disable zoom interaction inside ScrollView
+        mapView.setMultiTouchControls(false)
 
-        // Set Point
         val point = GeoPoint(lat, lng)
         mapView.controller.setZoom(15.0)
         mapView.controller.setCenter(point)
 
-        // Add Marker
         val marker = Marker(mapView)
         marker.position = point
         marker.title = locationName
-        // Default marker icon is used
         mapView.overlays.add(marker)
 
-        // Open Google Maps on Click using the Overlay View
         findViewById<android.view.View>(R.id.map_overlay).setOnClickListener {
             val uri = Uri.parse("geo:$lat,$lng?q=$lat,$lng($locationName)")
-            val mapIntent = Intent(Intent.ACTION_VIEW, uri)
-            // Try to open Google Maps, fall back to browser/other
             try {
+                val mapIntent = Intent(Intent.ACTION_VIEW, uri)
                 mapIntent.setPackage("com.google.android.apps.maps")
                 startActivity(mapIntent)
             } catch (e: Exception) {
@@ -251,16 +262,18 @@ class ViewAd : AppCompatActivity() {
 
     private fun loadSellerDetails(userId: Int) {
         val db = dbHelper.readableDatabase
-        val cursor = db.rawQuery("SELECT full_name, phone_number, profile_image_url FROM users WHERE user_id = ?", arrayOf(userId.toString()))
+        // UPDATED QUERY: Fetching fcm_token
+        val cursor = db.rawQuery("SELECT full_name, phone_number, profile_image_url, fcm_token FROM users WHERE user_id = ?", arrayOf(userId.toString()))
 
         if (cursor.moveToFirst()) {
             val name = cursor.getString(0)
             sellerPhoneNumber = cursor.getString(1)
             val imgPath = cursor.getString(2)
+            // Save Token for Notification
+            sellerFcmToken = cursor.getString(3) ?: ""
 
             findViewById<TextView>(R.id.seller_name).text = name
 
-            // Load Seller Image
             val sellerImgView = findViewById<ImageView>(R.id.seller_image)
             if (!imgPath.isNullOrEmpty()) {
                 if (imgPath.startsWith("/")) {
@@ -274,6 +287,16 @@ class ViewAd : AppCompatActivity() {
                     Glide.with(this).load(fullUrl).placeholder(R.drawable.ic_profile_placeholder).into(sellerImgView)
                 }
             }
+
+            // Go to Profile
+            val openProfile = {
+                val intent = Intent(this, OtherAds::class.java)
+                intent.putExtra("USER_ID", userId)
+                startActivity(intent)
+            }
+            sellerImgView.setOnClickListener { openProfile() }
+            findViewById<TextView>(R.id.seller_name).setOnClickListener { openProfile() }
+
         } else {
             findViewById<TextView>(R.id.seller_name).text = "Unknown User ($userId)"
         }
@@ -292,11 +315,9 @@ class ViewAd : AppCompatActivity() {
         }
         cursor.close()
 
-        // Setup ViewPager
         val viewPager = findViewById<ViewPager2>(R.id.viewPagerImageSlider)
         viewPager.adapter = ImageSliderAdapter(imagePaths)
 
-        // Setup Counter Text
         val countText = findViewById<TextView>(R.id.photo_count_text)
         countText.text = "1/${imagePaths.size}"
 
