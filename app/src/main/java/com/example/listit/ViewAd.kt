@@ -4,7 +4,6 @@ import ListItDbHelper
 import android.content.ContentValues
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.preference.PreferenceManager
@@ -16,12 +15,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.android.volley.Request
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.bumptech.glide.Glide
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -32,15 +33,21 @@ import java.io.File
 class ViewAd : AppCompatActivity() {
 
     private lateinit var dbHelper: ListItDbHelper
+
     private lateinit var auth: FirebaseAuth
     private var adId: Int = -1
     private var sellerPhoneNumber: String = ""
+
+    // NEW: Variable to hold the seller's token
+    private var sellerFcmToken: String = ""
+
     private lateinit var mapView: MapView
     private var isSaved = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Initialize OpenStreetMap
         Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
 
         enableEdgeToEdge()
@@ -61,10 +68,12 @@ class ViewAd : AppCompatActivity() {
 
         findViewById<ImageView>(R.id.back_icon).setOnClickListener { finish() }
 
+        // Heart Click Listener
         findViewById<ImageView>(R.id.fav_icon).setOnClickListener {
             toggleSaveState()
         }
 
+        // Call Button
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_call).setOnClickListener {
             if (sellerPhoneNumber.isNotEmpty()) {
                 val intent = Intent(Intent.ACTION_DIAL)
@@ -99,26 +108,29 @@ class ViewAd : AppCompatActivity() {
     private fun updateFavIcon() {
         val favIcon = findViewById<ImageView>(R.id.fav_icon)
         favIcon.clearColorFilter()
+
         if (isSaved) {
-            favIcon.setImageResource(R.drawable.ic_favourite)
+            favIcon.setImageResource(R.drawable.ic_favourite) // Filled
         } else {
-            favIcon.setImageResource(R.drawable.ic_favorite)
+            favIcon.setImageResource(R.drawable.ic_favorite) // Outline
         }
     }
 
     private fun toggleSaveState() {
-        val currentUserEmail = auth.currentUser?.email
-        if (currentUserEmail == null) {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
             Toast.makeText(this, "Login to save ads", Toast.LENGTH_SHORT).show()
             return
         }
-        val userId = getUserIdByEmail(currentUserEmail)
+
+        val userId = getUserIdByEmail(currentUser.email!!)
         val db = dbHelper.writableDatabase
 
         isSaved = !isSaved
         updateFavIcon()
 
         if (isSaved) {
+            // 1. Save Locally
             val values = ContentValues().apply {
                 put("user_id", userId)
                 put("ad_id", adId)
@@ -127,8 +139,28 @@ class ViewAd : AppCompatActivity() {
                 put("created_at", System.currentTimeMillis().toString())
             }
             db.insert(ListItDbHelper.TABLE_SAVED_ADS, null, values)
+
+            // 2. Sync to Server
             syncSaveToServer(userId, adId, "save")
+
+            // 3. SEND NOTIFICATION (Logic Added Here)
+            if (sellerFcmToken.isNotEmpty()) {
+                val saverName = currentUser.displayName ?: "Someone"
+                // Using lifecycleScope to run the suspend function
+                lifecycleScope.launch {
+                    try {
+                        PushNotificationSender.sendAdSavedNotification(sellerFcmToken, saverName)
+                        Log.d("ViewAd", "Notification sent to seller")
+                    } catch (e: Exception) {
+                        Log.e("ViewAd", "Failed to send notification: ${e.message}")
+                    }
+                }
+            } else {
+                Log.d("ViewAd", "Seller token not found, cannot send notification")
+            }
+
         } else {
+            // Unsave Logic
             db.execSQL("UPDATE saved_ads SET is_deleted=1, is_synced=0 WHERE user_id=$userId AND ad_id=$adId")
             syncSaveToServer(userId, adId, "unsave")
         }
@@ -230,12 +262,15 @@ class ViewAd : AppCompatActivity() {
 
     private fun loadSellerDetails(userId: Int) {
         val db = dbHelper.readableDatabase
-        val cursor = db.rawQuery("SELECT full_name, phone_number, profile_image_url FROM users WHERE user_id = ?", arrayOf(userId.toString()))
+        // UPDATED QUERY: Fetching fcm_token
+        val cursor = db.rawQuery("SELECT full_name, phone_number, profile_image_url, fcm_token FROM users WHERE user_id = ?", arrayOf(userId.toString()))
 
         if (cursor.moveToFirst()) {
             val name = cursor.getString(0)
             sellerPhoneNumber = cursor.getString(1)
             val imgPath = cursor.getString(2)
+            // Save Token for Notification
+            sellerFcmToken = cursor.getString(3) ?: ""
 
             findViewById<TextView>(R.id.seller_name).text = name
 
@@ -253,7 +288,7 @@ class ViewAd : AppCompatActivity() {
                 }
             }
 
-            // --- NEW: Go to OtherAds Profile on click ---
+            // Go to Profile
             val openProfile = {
                 val intent = Intent(this, OtherAds::class.java)
                 intent.putExtra("USER_ID", userId)

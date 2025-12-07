@@ -582,6 +582,10 @@ class Home : AppCompatActivity() {
                                     put("email", obj.getString("email"))
                                     put("phone_number", obj.getString("phone_number"))
                                     put("profile_image_url", obj.getString("profile_image_url"))
+
+                                    // FIX: Save the Token!
+                                    // Use optString to handle cases where token might be null/missing
+                                    put("fcm_token", obj.optString("fcm_token", ""))
                                 }
                                 db.insertWithOnConflict(ListItDbHelper.TABLE_USERS, null, values, android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE)
                             }
