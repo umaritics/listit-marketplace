@@ -3,7 +3,6 @@ package com.example.listit
 import ListItDbHelper
 import android.content.ContentValues
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
@@ -32,7 +31,13 @@ class Buying : AppCompatActivity() {
     private lateinit var dbHelper: ListItDbHelper
     private lateinit var auth: FirebaseAuth
 
-    // Data class to hold all info needed for the row
+    // We keep two separate lists in memory
+    private val buyingList = ArrayList<ChatRoomUI>()
+    private val sellingList = ArrayList<ChatRoomUI>()
+
+    // To track which tab is currently active (Default to Buying)
+    private var isBuyingTabActive = true
+
     data class ChatRoomUI(
         val chatId: Int,
         val otherUserName: String,
@@ -51,11 +56,6 @@ class Buying : AppCompatActivity() {
         setupNavigation()
         setupTabSwitching()
 
-        // 1. Load Local Data First (Instant UI)
-        loadBuyingChats()
-
-        // 2. Sync Data from Server (Background)
-        syncChatsFromServer()
 
         findViewById<View>(R.id.btn_start_selling).setOnClickListener {
             startActivity(Intent(this, PostAd::class.java))
@@ -68,42 +68,58 @@ class Buying : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // This runs every time you come back to this screen
+        // It ensures the counters go to 0 immediately after you read a chat
+        loadChatsFromDB()
+        syncChatsFromServer()
+    }
+
     private fun setupTabSwitching() {
         val tabBuying = findViewById<RelativeLayout>(R.id.tab_buying)
         val tabSelling = findViewById<RelativeLayout>(R.id.tab_selling)
         val lineBuying = findViewById<View>(R.id.underline_buying)
         val lineSelling = findViewById<View>(R.id.underline_selling)
-        val viewBuying = findViewById<RelativeLayout>(R.id.view_buying_content)
-        val viewSelling = findViewById<RelativeLayout>(R.id.view_selling_content)
+
+        // Note: We use one RecyclerView for both, so we don't need to hide/show
+        // specific 'view_buying_content' containers unless you have specific text instructions inside them.
+        // For this logic, we just swap the adapter data.
 
         tabBuying.setOnClickListener {
-            viewBuying.visibility = View.VISIBLE
-            viewSelling.visibility = View.GONE
+            isBuyingTabActive = true
             lineBuying.setBackgroundColor(Color.parseColor("#FF913C"))
             lineSelling.setBackgroundColor(Color.parseColor("#E0E0E0"))
-            loadBuyingChats()
+
+            // Show Buying List
+            updateRecyclerView(buyingList)
         }
 
         tabSelling.setOnClickListener {
-            viewBuying.visibility = View.GONE
-            viewSelling.visibility = View.VISIBLE
+            isBuyingTabActive = false
             lineSelling.setBackgroundColor(Color.parseColor("#FF913C"))
             lineBuying.setBackgroundColor(Color.parseColor("#E0E0E0"))
-            // Logic for selling tabs can be added here
+
+            // Show Selling List
+            updateRecyclerView(sellingList)
         }
     }
 
-    private fun loadBuyingChats() {
+    // In Buying.kt
+
+    private fun loadChatsFromDB() {
         val currentUserEmail = auth.currentUser?.email ?: return
         val currentUserId = getUserIdByEmail(currentUserEmail)
 
-        val rv = findViewById<RecyclerView>(R.id.rv_buying_chats)
-        rv.layoutManager = LinearLayoutManager(this)
+        buyingList.clear()
+        sellingList.clear()
 
-        val chatList = ArrayList<ChatRoomUI>()
+        // Variables to track total unread counts
+        var totalBuyingUnread = 0
+        var totalSellingUnread = 0
+
         val db = dbHelper.readableDatabase
 
-        // Query: Get chats where I am buyer OR seller
         val query = "SELECT chat_id, ad_id, buyer_id, seller_id FROM chat_rooms WHERE buyer_id = ? OR seller_id = ? ORDER BY created_at DESC"
         val cursor = db.rawQuery(query, arrayOf(currentUserId.toString(), currentUserId.toString()))
 
@@ -114,28 +130,94 @@ class Buying : AppCompatActivity() {
                 val buyerId = cursor.getInt(2)
                 val sellerId = cursor.getInt(3)
 
-                val otherUserId = if (currentUserId == buyerId) sellerId else buyerId
-
-                // Fetch Name & Image for the other user
-                val userDetails = getUserDetails(otherUserId)
+                // NEW: Get unread count for this specific chat
+                val unreadCount = getUnreadCountForChat(chatId, currentUserId)
                 val adTitle = getAdTitle(adId)
 
-                chatList.add(ChatRoomUI(chatId, userDetails.first, userDetails.second, adTitle))
+                if (currentUserId == buyerId) {
+                    // Buying Chat
+                    val otherDetails = getUserDetails(sellerId)
+                    buyingList.add(ChatRoomUI(chatId, otherDetails.first, otherDetails.second, adTitle))
+
+                    // Add to total buying unread
+                    totalBuyingUnread += unreadCount
+
+                } else if (currentUserId == sellerId) {
+                    // Selling Chat
+                    val otherDetails = getUserDetails(buyerId)
+                    sellingList.add(ChatRoomUI(chatId, otherDetails.first, otherDetails.second, adTitle))
+
+                    // Add to total selling unread
+                    totalSellingUnread += unreadCount
+                }
+
             } while (cursor.moveToNext())
         }
         cursor.close()
 
-        if (chatList.isEmpty()) {
-            findViewById<TextView>(R.id.empty_buying).visibility = View.VISIBLE
-            rv.visibility = View.GONE
+        // --- UPDATE BADGES UI ---
+        updateBadges(totalBuyingUnread, totalSellingUnread)
+
+        if (isBuyingTabActive) {
+            updateRecyclerView(buyingList)
         } else {
-            findViewById<TextView>(R.id.empty_buying).visibility = View.GONE
-            rv.visibility = View.VISIBLE
-            rv.adapter = ChatListAdapter(chatList)
+            updateRecyclerView(sellingList)
         }
     }
 
-    // --- SYNC FUNCTIONS ---
+// --- NEW HELPER FUNCTIONS ---
+
+    // 1. Calculate unread messages in a specific chat
+    private fun getUnreadCountForChat(chatId: Int, currentUserId: Int): Int {
+        val db = dbHelper.readableDatabase
+        // Count messages in this chat where is_read is 0 AND I am NOT the sender
+        val cursor = db.rawQuery(
+            "SELECT COUNT(*) FROM messages WHERE chat_id = ? AND is_read = 0 AND sender_id != ?",
+            arrayOf(chatId.toString(), currentUserId.toString())
+        )
+        var count = 0
+        if (cursor.moveToFirst()) {
+            count = cursor.getInt(0)
+        }
+        cursor.close()
+        return count
+    }
+
+    // 2. Update the UI Textviews
+    private fun updateBadges(buyingCount: Int, sellingCount: Int) {
+        val badgeBuying = findViewById<TextView>(R.id.badge_buying)
+        val badgeSelling = findViewById<TextView>(R.id.badge_selling)
+
+        if (buyingCount > 0) {
+            badgeBuying.text = buyingCount.toString()
+            badgeBuying.visibility = View.VISIBLE
+        } else {
+            badgeBuying.visibility = View.GONE
+        }
+
+        if (sellingCount > 0) {
+            badgeSelling.text = sellingCount.toString()
+            badgeSelling.visibility = View.VISIBLE
+        } else {
+            badgeSelling.visibility = View.GONE
+        }
+    }
+    private fun updateRecyclerView(data: ArrayList<ChatRoomUI>) {
+        val rv = findViewById<RecyclerView>(R.id.rv_buying_chats)
+        val emptyView = findViewById<TextView>(R.id.empty_buying) // Ensure this ID exists in XML
+
+        rv.layoutManager = LinearLayoutManager(this)
+
+        if (data.isEmpty()) {
+            emptyView.visibility = View.VISIBLE
+            emptyView.text = if(isBuyingTabActive) "No active buying chats" else "No active selling chats"
+            rv.visibility = View.GONE
+        } else {
+            emptyView.visibility = View.GONE
+            rv.visibility = View.VISIBLE
+            rv.adapter = ChatListAdapter(data)
+        }
+    }
 
     private fun syncChatsFromServer() {
         val email = auth.currentUser?.email ?: return
@@ -157,7 +239,6 @@ class Buying : AppCompatActivity() {
                             val obj = chats.getJSONObject(i)
                             val serverChatId = obj.getInt("chat_id")
 
-                            // Check if chat exists locally
                             val check = db.rawQuery("SELECT chat_id FROM chat_rooms WHERE chat_id = ?", arrayOf(serverChatId.toString()))
                             if (!check.moveToFirst()) {
                                 val values = ContentValues().apply {
@@ -172,8 +253,7 @@ class Buying : AppCompatActivity() {
                             }
                             check.close()
                         }
-
-                        // After syncing chats, sync users to ensure we have names/photos
+                        // Refresh user data then refresh lists
                         syncAllUsers(hasNewData)
                     }
                 } catch (e: Exception) { e.printStackTrace() }
@@ -188,12 +268,10 @@ class Buying : AppCompatActivity() {
         val url = Constants.BASE_URL + "get_users.php"
         val request = StringRequest(Request.Method.GET, url, { response ->
             try {
-                // Handle potential PHP warnings before JSON
                 val jsonStartIndex = response.indexOf("{")
                 if (jsonStartIndex != -1) {
                     val cleanResponse = response.substring(jsonStartIndex)
                     val json = JSONObject(cleanResponse)
-
                     if (json.getString("status") == "success") {
                         val usersArray = json.getJSONArray("data")
                         val db = dbHelper.writableDatabase
@@ -208,8 +286,8 @@ class Buying : AppCompatActivity() {
                             }
                             db.insertWithOnConflict(ListItDbHelper.TABLE_USERS, null, values, android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE)
                         }
-                        // Refresh UI now that we have names
-                        loadBuyingChats()
+                        // Reload the lists from DB
+                        loadChatsFromDB()
                     }
                 }
             } catch (e: Exception) { e.printStackTrace() }
@@ -233,27 +311,19 @@ class Buying : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: ChatHolder, position: Int) {
             val chat = chats[position]
-
             holder.name.text = chat.otherUserName
-            // Showing Ad Title in the subtitle instead of "Tap to view"
             holder.msg.text = "Regarding: ${chat.adTitle}"
 
-            // Load Profile Image
             val path = chat.otherUserImage
             if (path.isNotEmpty()) {
                 if (path.startsWith("/")) {
-                    // Local file
                     val imgFile = File(path)
                     if (imgFile.exists()) {
-                        holder.img.setImageBitmap(BitmapFactory.decodeFile(imgFile.absolutePath))
+                        Glide.with(holder.itemView.context).load(imgFile).circleCrop().into(holder.img)
                     }
                 } else {
-                    // Server URL
                     val fullUrl = if (path.startsWith("http")) path else Constants.BASE_URL + path
-                    Glide.with(holder.itemView.context)
-                        .load(fullUrl)
-                        .placeholder(R.drawable.ic_profile_placeholder) // Ensure you have this drawable
-                        .into(holder.img)
+                    Glide.with(holder.itemView.context).load(fullUrl).circleCrop().placeholder(R.drawable.ic_profile_placeholder).into(holder.img)
                 }
             } else {
                 holder.img.setImageResource(R.drawable.ic_profile_placeholder)
@@ -263,13 +333,12 @@ class Buying : AppCompatActivity() {
                 val intent = Intent(this@Buying, Chat_message::class.java)
                 intent.putExtra("CHAT_ID", chat.chatId)
                 intent.putExtra("OTHER_NAME", chat.otherUserName)
+                intent.putExtra("OTHER_IMAGE", chat.otherUserImage) // Passing the image
                 startActivity(intent)
             }
         }
         override fun getItemCount() = chats.size
     }
-
-    // --- HELPERS ---
 
     private fun getUserIdByEmail(email: String): Int {
         val db = dbHelper.readableDatabase

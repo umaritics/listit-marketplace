@@ -54,6 +54,12 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.firebase.messaging)
     implementation(libs.volley)
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-messaging") // For push
+
+    // 2. Agora Video SDK
+    implementation("io.agora.rtc:full-sdk:4.3.0")
     implementation("org.osmdroid:osmdroid-android:6.1.16")
     implementation("com.github.bumptech.glide:glide:4.16.0")
     implementation(libs.androidx.swiperefreshlayout)

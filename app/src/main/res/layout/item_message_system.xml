@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:padding="8dp">
+
+    <TextView
+        android:id="@+id/text_message_body"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/rounded_orange_border"
+        android:backgroundTint="#FFEB3B"
+        android:padding="8dp"
+        android:text="System Message"
+        android:textColor="#000000"
+        android:textSize="12sp"
+        android:textStyle="italic" />
+</LinearLayout>
