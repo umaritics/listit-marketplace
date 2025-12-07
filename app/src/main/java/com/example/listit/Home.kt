@@ -1,19 +1,25 @@
 package com.example.listit
 
 import ListItDbHelper
+import android.Manifest
 import android.app.Activity
+import android.app.NotificationManager
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.speech.RecognizerIntent
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Base64
 import android.util.Log
 import android.view.View
 import android.widget.HorizontalScrollView
@@ -23,6 +29,8 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
@@ -37,6 +45,13 @@ import com.google.android.material.chip.ChipGroup
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
+// --- ADDED FIREBASE IMPORTS ---
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+// ------------------------------
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
@@ -49,6 +64,11 @@ class Home : AppCompatActivity() {
     private lateinit var adAdapter: AdAdapter
     private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var auth: FirebaseAuth
+
+    // --- ADDED FOR CALL LISTENER ---
+    private var callListener: ValueEventListener? = null
+    private lateinit var callRef: DatabaseReference
+    // -------------------------------
 
     private val displayedAdList = ArrayList<Ad>()
     private val fullAdList = ArrayList<Ad>()
@@ -90,13 +110,23 @@ class Home : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_home)
 
+        // 1. Notification Permission (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+
         dbHelper = ListItDbHelper(this)
         auth = FirebaseAuth.getInstance()
+
+        // --- START LISTENING FOR CALLS ---
+        setupCallListener()
+        // ---------------------------------
 
         val recyclerView = findViewById<RecyclerView>(R.id.rv_ads)
         recyclerView.layoutManager = GridLayoutManager(this, 2)
 
-        // Pass the click callback to the adapter
         adAdapter = AdAdapter(displayedAdList) { ad, position ->
             toggleSaveAd(ad, position)
         }
@@ -109,7 +139,7 @@ class Home : AppCompatActivity() {
             if (isNetworkAvailable()) {
                 syncAdsFromServer()
                 syncDirtyAdsToServer()
-                syncSavedAdsToServer() // NEW: Sync hearts
+                syncSavedAdsToServer()
                 syncAllUsers()
             } else {
                 swipeRefresh.isRefreshing = false
@@ -122,7 +152,7 @@ class Home : AppCompatActivity() {
         if (isNetworkAvailable()) {
             syncAdsFromServer()
             syncDirtyAdsToServer()
-            syncSavedAdsToServer() // NEW
+            syncSavedAdsToServer()
             syncAllUsers()
         }
 
@@ -160,6 +190,63 @@ class Home : AppCompatActivity() {
         }
     }
 
+    // --- NEW LOGIC: DIRECT RTDB LISTENER ---
+    // --- UPDATED LISTENER: PREVENTS LOOP ---
+    private fun setupCallListener() {
+        val currentUserEmail = auth.currentUser?.email ?: return
+        val currentUserId = getUserIdByEmail(currentUserEmail)
+
+        // Ensure we are connected to your specific DB instance
+        val db = FirebaseDatabase.getInstance("https://listit-749b1-default-rtdb.firebaseio.com/")
+        // Listen to "calls/{myUserId}"
+        callRef = db.getReference("calls").child(currentUserId.toString())
+
+        callListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    val status = snapshot.child("status").getValue(String::class.java)
+                    val type = snapshot.child("type").getValue(String::class.java)
+
+                    // CHECK: Is it ringing?
+                    if (status == "ringing" && type == "video") {
+                        val callerName = snapshot.child("callerName").getValue(String::class.java) ?: "Unknown"
+                        val callerId = snapshot.child("callerId").getValue(String::class.java) ?: ""
+                        val channelName = snapshot.child("channelName").getValue(String::class.java) ?: ""
+
+                        Log.d("CallListener", "Call detected! Launching IncomingCallActivity")
+
+                        // 1. Launch Activity immediately
+                        val intent = Intent(this@Home, IncomingCallActivity::class.java)
+                        intent.putExtra("CALLER_NAME", callerName)
+                        intent.putExtra("CALLER_ID", callerId)
+                        intent.putExtra("CHANNEL_NAME", channelName)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        startActivity(intent)
+
+                        // 2. CRITICAL FIX: Update status immediately to stop the loop
+                        // This prevents Home from launching the screen again
+                        snapshot.ref.child("status").setValue("ringing_received")
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("CallListener", "Error listening for calls: ${error.message}")
+            }
+        }
+
+        callRef.addValueEventListener(callListener!!)
+    }
+
+    // REMOVE LISTENER WHEN APP CLOSES TO SAVE BATTERY
+    override fun onDestroy() {
+        super.onDestroy()
+        if (callListener != null && ::callRef.isInitialized) {
+            callRef.removeEventListener(callListener!!)
+        }
+    }
+    // ---------------------------------------
+
     override fun onResume() {
         super.onResume()
         loadAdsFromLocalDB()
@@ -177,24 +264,21 @@ class Home : AppCompatActivity() {
 
         val newStatus = !ad.isSaved
         ad.isSaved = newStatus
-        adAdapter.notifyItemChanged(position) // Visual update immediately
+        adAdapter.notifyItemChanged(position)
 
         if (newStatus) {
-            // SAVE
             val values = ContentValues().apply {
                 put("user_id", userId)
                 put("ad_id", ad.id)
                 put("is_deleted", 0)
-                put("is_synced", 0) // Dirty
+                put("is_synced", 0)
                 put("created_at", System.currentTimeMillis().toString())
             }
             db.insert(ListItDbHelper.TABLE_SAVED_ADS, null, values)
         } else {
-            // UNSAVE (Soft Delete for Sync)
             db.execSQL("UPDATE saved_ads SET is_deleted=1, is_synced=0 WHERE user_id=$userId AND ad_id=${ad.id}")
         }
 
-        // Try Sync immediately if online
         if (isNetworkAvailable()) {
             syncSavedAdsToServer()
         }
@@ -218,10 +302,8 @@ class Home : AppCompatActivity() {
                         if (response.contains("success")) {
                             val wDb = dbHelper.writableDatabase
                             if (action == "unsave") {
-                                // Hard delete locally after sync
                                 wDb.execSQL("DELETE FROM saved_ads WHERE user_id=$userId AND ad_id=$adId")
                             } else {
-                                // Mark as synced
                                 wDb.execSQL("UPDATE saved_ads SET is_synced=1 WHERE user_id=$userId AND ad_id=$adId")
                             }
                         }
@@ -326,7 +408,6 @@ class Home : AppCompatActivity() {
         val userId = getUserIdByEmail(currentUserEmail)
 
         val db = dbHelper.readableDatabase
-        // UPDATED QUERY: Added WHERE a.is_deleted = 0 to filter out removed ads
         val query = """
             SELECT a.ad_id, a.title, a.price, a.location_address, a.created_at, a.is_synced, i.image_url, a.category, a.condition_type,
             (SELECT count(*) FROM saved_ads s WHERE s.ad_id = a.ad_id AND s.user_id = $userId AND s.is_deleted = 0) as is_saved
@@ -419,8 +500,6 @@ class Home : AppCompatActivity() {
                                         put("lat", obj.optDouble("lat", 0.0))
                                         put("lng", obj.optDouble("lng", 0.0))
                                         put("is_synced", 1)
-                                        // UPDATED: Sync is_deleted status from server if you implemented that logic in get_ads
-                                        // But for now default is 0 as get_ads only returns ACTIVE ads
                                         put("is_deleted", 0)
                                         put("created_at", obj.getString("created_at"))
                                     }
@@ -436,8 +515,6 @@ class Home : AppCompatActivity() {
                                         }
                                         db.insert(ListItDbHelper.TABLE_AD_IMAGES, null, imgValues)
                                     }
-                                } else {
-                                    // Ad exists locally, maybe check for updates (e.g. status changes) if needed
                                 }
                                 check.close()
                             }
@@ -497,7 +574,6 @@ class Home : AppCompatActivity() {
         val url = Constants.BASE_URL + "post_ad.php"
         val stringRequest = object : StringRequest(Request.Method.POST, url,
             { response ->
-                // PARSE RESPONSE TO GET SERVER ID
                 try {
                     val jsonStartIndex = response.indexOf("{")
                     if (jsonStartIndex != -1) {
@@ -508,12 +584,10 @@ class Home : AppCompatActivity() {
                             val serverAdId = json.getInt("ad_id")
                             val db = dbHelper.writableDatabase
 
-                            // ID SWAP: Replace Local ID with Server ID
                             db.execSQL("UPDATE ad_images SET ad_id = $serverAdId WHERE ad_id = $localAdId")
                             db.execSQL("UPDATE ads SET ad_id = $serverAdId, is_synced = 1 WHERE ad_id = $localAdId")
 
-                            Log.d("Home", "Synced Ad Local:$localAdId -> Server:$serverAdId")
-                            loadAdsFromLocalDB() // Refresh UI with new ID
+                            loadAdsFromLocalDB()
                         }
                     }
                 } catch (e: Exception) {
@@ -543,7 +617,7 @@ class Home : AppCompatActivity() {
                             if (bitmap != null) {
                                 val baos = ByteArrayOutputStream()
                                 bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, baos)
-                                val base64 = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.DEFAULT)
+                                val base64 = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT)
                                 imagesJsonArray.put(base64)
                             }
                         }
@@ -582,9 +656,6 @@ class Home : AppCompatActivity() {
                                     put("email", obj.getString("email"))
                                     put("phone_number", obj.getString("phone_number"))
                                     put("profile_image_url", obj.getString("profile_image_url"))
-
-                                    // FIX: Save the Token!
-                                    // Use optString to handle cases where token might be null/missing
                                     put("fcm_token", obj.optString("fcm_token", ""))
                                 }
                                 db.insertWithOnConflict(ListItDbHelper.TABLE_USERS, null, values, android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE)
@@ -599,8 +670,6 @@ class Home : AppCompatActivity() {
     }
 
     private fun setupNavigation() {
-        //findViewById<ImageView>(R.id.cars).setOnClickListener { startActivity(Intent(this, Category_Car::class.java)) }
-        //findViewById<LinearLayout>(R.id.category_bar).setOnClickListener { startActivity(Intent(this, Filters::class.java)) }
         findViewById<ImageView>(R.id.home_ic).setOnClickListener { }
         findViewById<ImageView>(R.id.chat_ic).setOnClickListener { startActivity(Intent(this, Buying::class.java)) }
         findViewById<ImageView>(R.id.add_ic)?.setOnClickListener { startActivity(Intent(this, PostAd::class.java)) }

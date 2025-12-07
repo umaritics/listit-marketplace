@@ -56,7 +56,6 @@ class Buying : AppCompatActivity() {
         setupNavigation()
         setupTabSwitching()
 
-
         findViewById<View>(R.id.btn_start_selling).setOnClickListener {
             startActivity(Intent(this, PostAd::class.java))
         }
@@ -71,7 +70,6 @@ class Buying : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         // This runs every time you come back to this screen
-        // It ensures the counters go to 0 immediately after you read a chat
         loadChatsFromDB()
         syncChatsFromServer()
     }
@@ -82,16 +80,10 @@ class Buying : AppCompatActivity() {
         val lineBuying = findViewById<View>(R.id.underline_buying)
         val lineSelling = findViewById<View>(R.id.underline_selling)
 
-        // Note: We use one RecyclerView for both, so we don't need to hide/show
-        // specific 'view_buying_content' containers unless you have specific text instructions inside them.
-        // For this logic, we just swap the adapter data.
-
         tabBuying.setOnClickListener {
             isBuyingTabActive = true
             lineBuying.setBackgroundColor(Color.parseColor("#FF913C"))
             lineSelling.setBackgroundColor(Color.parseColor("#E0E0E0"))
-
-            // Show Buying List
             updateRecyclerView(buyingList)
         }
 
@@ -99,13 +91,9 @@ class Buying : AppCompatActivity() {
             isBuyingTabActive = false
             lineSelling.setBackgroundColor(Color.parseColor("#FF913C"))
             lineBuying.setBackgroundColor(Color.parseColor("#E0E0E0"))
-
-            // Show Selling List
             updateRecyclerView(sellingList)
         }
     }
-
-    // In Buying.kt
 
     private fun loadChatsFromDB() {
         val currentUserEmail = auth.currentUser?.email ?: return
@@ -114,12 +102,10 @@ class Buying : AppCompatActivity() {
         buyingList.clear()
         sellingList.clear()
 
-        // Variables to track total unread counts
         var totalBuyingUnread = 0
         var totalSellingUnread = 0
 
         val db = dbHelper.readableDatabase
-
         val query = "SELECT chat_id, ad_id, buyer_id, seller_id FROM chat_rooms WHERE buyer_id = ? OR seller_id = ? ORDER BY created_at DESC"
         val cursor = db.rawQuery(query, arrayOf(currentUserId.toString(), currentUserId.toString()))
 
@@ -130,7 +116,6 @@ class Buying : AppCompatActivity() {
                 val buyerId = cursor.getInt(2)
                 val sellerId = cursor.getInt(3)
 
-                // NEW: Get unread count for this specific chat
                 val unreadCount = getUnreadCountForChat(chatId, currentUserId)
                 val adTitle = getAdTitle(adId)
 
@@ -138,24 +123,17 @@ class Buying : AppCompatActivity() {
                     // Buying Chat
                     val otherDetails = getUserDetails(sellerId)
                     buyingList.add(ChatRoomUI(chatId, otherDetails.first, otherDetails.second, adTitle))
-
-                    // Add to total buying unread
                     totalBuyingUnread += unreadCount
-
                 } else if (currentUserId == sellerId) {
                     // Selling Chat
                     val otherDetails = getUserDetails(buyerId)
                     sellingList.add(ChatRoomUI(chatId, otherDetails.first, otherDetails.second, adTitle))
-
-                    // Add to total selling unread
                     totalSellingUnread += unreadCount
                 }
-
             } while (cursor.moveToNext())
         }
         cursor.close()
 
-        // --- UPDATE BADGES UI ---
         updateBadges(totalBuyingUnread, totalSellingUnread)
 
         if (isBuyingTabActive) {
@@ -165,12 +143,65 @@ class Buying : AppCompatActivity() {
         }
     }
 
-// --- NEW HELPER FUNCTIONS ---
+    // --- NEW: Sync Messages Logic ---
+    // This loops through all your chats and downloads messages so the counter works
+    private fun syncMessagesForChats(chatIds: ArrayList<Int>) {
+        val queue = Volley.newRequestQueue(this)
 
-    // 1. Calculate unread messages in a specific chat
+        for (chatId in chatIds) {
+            val url = Constants.BASE_URL + "get_chat_history.php?chat_id=$chatId"
+            val request = StringRequest(Request.Method.GET, url,
+                { response ->
+                    try {
+                        val json = JSONObject(response)
+                        if (json.getString("status") == "success") {
+                            val msgs = json.getJSONArray("data")
+                            val db = dbHelper.writableDatabase
+                            var newDataFound = false
+
+                            for (i in 0 until msgs.length()) {
+                                val obj = msgs.getJSONObject(i)
+                                val serverMsgId = obj.getInt("message_id")
+                                val serverText = obj.getString("message_text")
+                                val sender = obj.getInt("sender_id")
+                                val date = obj.getString("created_at")
+
+                                val check = db.rawQuery("SELECT message_id FROM messages WHERE message_id = ?", arrayOf(serverMsgId.toString()))
+                                if (!check.moveToFirst()) {
+                                    // INSERT NEW MESSAGE
+                                    val values = ContentValues().apply {
+                                        put("message_id", serverMsgId)
+                                        put("chat_id", chatId)
+                                        put("sender_id", sender)
+                                        put("message_text", serverText)
+                                        put("created_at", date)
+                                        // IMPORTANT: If I am NOT the sender, it is unread (0)
+                                        // If I am the sender, it is read (1)
+                                        val currentUserEmail = auth.currentUser?.email
+                                        val myId = if(currentUserEmail != null) getUserIdByEmail(currentUserEmail) else -1
+                                        put("is_read", if (sender == myId) 1 else 0)
+                                    }
+                                    db.insert(ListItDbHelper.TABLE_MESSAGES, null, values)
+                                    newDataFound = true
+                                }
+                                check.close()
+                            }
+                            // If we downloaded new messages, refresh the UI counters
+                            if(newDataFound) {
+                                loadChatsFromDB()
+                            }
+                        }
+                    } catch (e: Exception) { e.printStackTrace() }
+                },
+                { error -> }
+            )
+            queue.add(request)
+        }
+    }
+
     private fun getUnreadCountForChat(chatId: Int, currentUserId: Int): Int {
         val db = dbHelper.readableDatabase
-        // Count messages in this chat where is_read is 0 AND I am NOT the sender
+        // Count messages where is_read = 0 AND I am NOT the sender
         val cursor = db.rawQuery(
             "SELECT COUNT(*) FROM messages WHERE chat_id = ? AND is_read = 0 AND sender_id != ?",
             arrayOf(chatId.toString(), currentUserId.toString())
@@ -183,7 +214,6 @@ class Buying : AppCompatActivity() {
         return count
     }
 
-    // 2. Update the UI Textviews
     private fun updateBadges(buyingCount: Int, sellingCount: Int) {
         val badgeBuying = findViewById<TextView>(R.id.badge_buying)
         val badgeSelling = findViewById<TextView>(R.id.badge_selling)
@@ -202,9 +232,10 @@ class Buying : AppCompatActivity() {
             badgeSelling.visibility = View.GONE
         }
     }
+
     private fun updateRecyclerView(data: ArrayList<ChatRoomUI>) {
         val rv = findViewById<RecyclerView>(R.id.rv_buying_chats)
-        val emptyView = findViewById<TextView>(R.id.empty_buying) // Ensure this ID exists in XML
+        val emptyView = findViewById<TextView>(R.id.empty_buying)
 
         rv.layoutManager = LinearLayoutManager(this)
 
@@ -234,10 +265,12 @@ class Buying : AppCompatActivity() {
                         val chats = json.getJSONArray("data")
                         val db = dbHelper.writableDatabase
                         var hasNewData = false
+                        val allChatIds = ArrayList<Int>() // Store IDs to sync messages later
 
                         for (i in 0 until chats.length()) {
                             val obj = chats.getJSONObject(i)
                             val serverChatId = obj.getInt("chat_id")
+                            allChatIds.add(serverChatId) // Add to list
 
                             val check = db.rawQuery("SELECT chat_id FROM chat_rooms WHERE chat_id = ?", arrayOf(serverChatId.toString()))
                             if (!check.moveToFirst()) {
@@ -253,8 +286,12 @@ class Buying : AppCompatActivity() {
                             }
                             check.close()
                         }
-                        // Refresh user data then refresh lists
+
+                        // 1. Sync User Details
                         syncAllUsers(hasNewData)
+
+                        // 2. Sync Messages for these chats (CRITICAL FOR COUNTER)
+                        syncMessagesForChats(allChatIds)
                     }
                 } catch (e: Exception) { e.printStackTrace() }
             },
@@ -295,9 +332,7 @@ class Buying : AppCompatActivity() {
         queue.add(request)
     }
 
-    // --- ADAPTER ---
     inner class ChatListAdapter(private val chats: ArrayList<ChatRoomUI>) : RecyclerView.Adapter<ChatListAdapter.ChatHolder>() {
-
         inner class ChatHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             val name: TextView = itemView.findViewById(R.id.chat_row_username)
             val msg: TextView = itemView.findViewById(R.id.chat_row_last_msg)
@@ -333,7 +368,7 @@ class Buying : AppCompatActivity() {
                 val intent = Intent(this@Buying, Chat_message::class.java)
                 intent.putExtra("CHAT_ID", chat.chatId)
                 intent.putExtra("OTHER_NAME", chat.otherUserName)
-                intent.putExtra("OTHER_IMAGE", chat.otherUserImage) // Passing the image
+                intent.putExtra("OTHER_IMAGE", chat.otherUserImage)
                 startActivity(intent)
             }
         }
