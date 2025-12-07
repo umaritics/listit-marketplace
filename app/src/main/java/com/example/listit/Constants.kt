@@ -9,4 +9,5 @@ object Constants {
     const val BASE_URL = "https://lathiest-unmutualized-jeff.ngrok-free.dev/Listit/"
     const val LOGIN_URL = "${BASE_URL}login_user.php"
     const val REGISTER_URL = "${BASE_URL}register_user.php"
+    const val EDIT_PROFILE_URL = "${BASE_URL}edit_profile.php"
 }

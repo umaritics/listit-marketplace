@@ -92,6 +92,9 @@ dependencies {
     // Google Auth (Removed specific exclude as packaging block handles the conflict)
     implementation("com.google.auth:google-auth-library-oauth2-http:1.19.0")
 
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
