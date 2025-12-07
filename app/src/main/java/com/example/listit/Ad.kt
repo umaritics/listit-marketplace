@@ -5,7 +5,10 @@ data class Ad(
     val title: String,
     val price: Double,
     val location: String,
-    val imagePath: String?, // Can be local path or server URL
+    val category: String,
+    val condition: String,
+    val imagePath: String?,
     val date: String,
-    val isSynced: Int
+    val isSynced: Int,
+    var isSaved: Boolean = false // New Field
 )

@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.volley)
     implementation("org.osmdroid:osmdroid-android:6.1.16")
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation(libs.androidx.swiperefreshlayout)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

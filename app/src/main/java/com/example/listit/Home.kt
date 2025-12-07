@@ -1,18 +1,22 @@
 package com.example.listit
 
 import ListItDbHelper
+import android.app.Activity
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Base64
 import android.util.Log
+import android.view.View
+import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
@@ -23,12 +27,16 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Request
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.google.firebase.auth.FirebaseAuth
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
@@ -39,20 +47,40 @@ class Home : AppCompatActivity() {
 
     private lateinit var dbHelper: ListItDbHelper
     private lateinit var adAdapter: AdAdapter
+    private lateinit var swipeRefresh: SwipeRefreshLayout
+    private lateinit var auth: FirebaseAuth
 
-    // Two lists: one for display, one for backup (filtering)
     private val displayedAdList = ArrayList<Ad>()
     private val fullAdList = ArrayList<Ad>()
 
-    // VOICE SEARCH LAUNCHER
+    private var searchQuery: String = ""
+    private var filterCategory: String? = null
+    private var filterCondition: String? = null
+    private var filterMinPrice: Double? = null
+    private var filterMaxPrice: Double? = null
+    private var filterLocation: String? = null
+
+    private val filterLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+            val data = result.data!!
+
+            if (data.hasExtra("category")) filterCategory = data.getStringExtra("category")
+            if (data.hasExtra("condition")) filterCondition = data.getStringExtra("condition")
+            if (data.hasExtra("location")) filterLocation = data.getStringExtra("location")
+            if (data.hasExtra("minPrice")) filterMinPrice = data.getDoubleExtra("minPrice", 0.0)
+            if (data.hasExtra("maxPrice")) filterMaxPrice = data.getDoubleExtra("maxPrice", 0.0)
+
+            updateFilterUI()
+            refilter()
+        }
+    }
+
     private val speechLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK && result.data != null) {
             val spokenText: ArrayList<String> = result.data!!.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS) ?: arrayListOf()
             if (spokenText.isNotEmpty()) {
                 val query = spokenText[0]
-                // Set text in search bar (Note: setText triggers TextWatcher)
                 findViewById<TextInputEditText>(R.id.search_input).setText(query)
-                // filterAds(query) // Removed direct search call as requested
             }
         }
     }
@@ -63,48 +91,67 @@ class Home : AppCompatActivity() {
         setContentView(R.layout.activity_home)
 
         dbHelper = ListItDbHelper(this)
+        auth = FirebaseAuth.getInstance()
 
         val recyclerView = findViewById<RecyclerView>(R.id.rv_ads)
         recyclerView.layoutManager = GridLayoutManager(this, 2)
-        adAdapter = AdAdapter(displayedAdList)
+
+        // Pass the click callback to the adapter
+        adAdapter = AdAdapter(displayedAdList) { ad, position ->
+            toggleSaveAd(ad, position)
+        }
         recyclerView.adapter = adAdapter
 
-        // Load Data
+        swipeRefresh = findViewById(R.id.swipe_refresh)
+        swipeRefresh.setColorSchemeColors(Color.parseColor("#FF6F00"))
+        swipeRefresh.setOnRefreshListener {
+            loadAdsFromLocalDB()
+            if (isNetworkAvailable()) {
+                syncAdsFromServer()
+                syncDirtyAdsToServer()
+                syncSavedAdsToServer() // NEW: Sync hearts
+                syncAllUsers()
+            } else {
+                swipeRefresh.isRefreshing = false
+                Toast.makeText(this, "Showing local data (Offline)", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         loadAdsFromLocalDB()
 
         if (isNetworkAvailable()) {
             syncAdsFromServer()
             syncDirtyAdsToServer()
+            syncSavedAdsToServer() // NEW
             syncAllUsers()
         }
 
-        // --- SEARCH LOGIC ---
         val searchLayout = findViewById<TextInputLayout>(R.id.search_bar)
         val searchInput = findViewById<TextInputEditText>(R.id.search_input)
 
-        // 1. Voice Icon Click
         searchLayout.setEndIconOnClickListener {
+            val intent = Intent(this, Filters::class.java)
+            filterLauncher.launch(intent)
+        }
+
+        searchLayout.setStartIconOnClickListener {
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-            intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Say something (e.g. 'Toyota')")
-            try {
-                speechLauncher.launch(intent)
-            } catch (e: Exception) {
-                Toast.makeText(this, "Voice search not supported", Toast.LENGTH_SHORT).show()
-            }
+            try { speechLauncher.launch(intent) } catch (e: Exception) {}
         }
 
-        // 2. Text Typing
         searchInput.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                // filterAds(s.toString()) // Commented out: Search logic to be implemented later
+                searchQuery = s.toString().trim()
+                refilter()
             }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
 
         setupNavigation()
+        setupCategoryBar()
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -113,31 +160,179 @@ class Home : AppCompatActivity() {
         }
     }
 
-    private fun filterAds(query: String) {
-        val filteredList = ArrayList<Ad>()
+    override fun onResume() {
+        super.onResume()
+        loadAdsFromLocalDB()
+    }
 
-        if (query.isEmpty()) {
-            filteredList.addAll(fullAdList)
+    // --- HEART CLICK LOGIC ---
+    private fun toggleSaveAd(ad: Ad, position: Int) {
+        val currentUserEmail = auth.currentUser?.email
+        if (currentUserEmail == null) {
+            Toast.makeText(this, "Login to save ads", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val userId = getUserIdByEmail(currentUserEmail)
+        val db = dbHelper.writableDatabase
+
+        val newStatus = !ad.isSaved
+        ad.isSaved = newStatus
+        adAdapter.notifyItemChanged(position) // Visual update immediately
+
+        if (newStatus) {
+            // SAVE
+            val values = ContentValues().apply {
+                put("user_id", userId)
+                put("ad_id", ad.id)
+                put("is_deleted", 0)
+                put("is_synced", 0) // Dirty
+                put("created_at", System.currentTimeMillis().toString())
+            }
+            db.insert(ListItDbHelper.TABLE_SAVED_ADS, null, values)
         } else {
-            val lowercaseQuery = query.lowercase(Locale.getDefault())
-            for (ad in fullAdList) {
-                // Filter by Title, Category, or Location
-                if (ad.title.lowercase(Locale.getDefault()).contains(lowercaseQuery) ||
-                    ad.location.lowercase(Locale.getDefault()).contains(lowercaseQuery)) {
-                    filteredList.add(ad)
+            // UNSAVE (Soft Delete for Sync)
+            // Mark is_deleted=1, is_synced=0. Sync will remove it from server.
+            // But we can check if it was ever synced. If not, hard delete.
+            db.execSQL("UPDATE saved_ads SET is_deleted=1, is_synced=0 WHERE user_id=$userId AND ad_id=${ad.id}")
+        }
+
+        // Try Sync immediately if online
+        if (isNetworkAvailable()) {
+            syncSavedAdsToServer()
+        }
+    }
+
+    private fun syncSavedAdsToServer() {
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM saved_ads WHERE is_synced = 0", null)
+        val queue = Volley.newRequestQueue(this)
+
+        if (cursor.moveToFirst()) {
+            do {
+                val adId = cursor.getInt(cursor.getColumnIndexOrThrow("ad_id"))
+                val userId = cursor.getInt(cursor.getColumnIndexOrThrow("user_id"))
+                val isDeleted = cursor.getInt(cursor.getColumnIndexOrThrow("is_deleted"))
+
+                val action = if (isDeleted == 1) "unsave" else "save"
+
+                val request = object : StringRequest(Request.Method.POST, Constants.BASE_URL + "save_ad.php",
+                    { response ->
+                        if (response.contains("success")) {
+                            val wDb = dbHelper.writableDatabase
+                            if (action == "unsave") {
+                                // Hard delete locally after sync
+                                wDb.execSQL("DELETE FROM saved_ads WHERE user_id=$userId AND ad_id=$adId")
+                            } else {
+                                // Mark as synced
+                                wDb.execSQL("UPDATE saved_ads SET is_synced=1 WHERE user_id=$userId AND ad_id=$adId")
+                            }
+                        }
+                    },
+                    { error -> Log.e("Home", "Save Sync Error") }
+                ) {
+                    override fun getParams(): MutableMap<String, String> {
+                        val params = HashMap<String, String>()
+                        params["user_id"] = userId.toString()
+                        params["ad_id"] = adId.toString()
+                        params["action"] = action
+                        return params
+                    }
                 }
+                queue.add(request)
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+    }
+
+    // ... (Keep filter UI logic setupCategoryBar, setCategoryFilter, updateFilterUI, refilter same as before) ...
+    private fun setupCategoryBar() {
+        findViewById<LinearLayout>(R.id.cat_cars).setOnClickListener { setCategoryFilter("Car") }
+        findViewById<LinearLayout>(R.id.cat_mobile).setOnClickListener { setCategoryFilter("Mobile") }
+        findViewById<LinearLayout>(R.id.cat_property).setOnClickListener { setCategoryFilter("Property") }
+        findViewById<LinearLayout>(R.id.cat_bikes).setOnClickListener { setCategoryFilter("Bike") }
+    }
+
+    private fun setCategoryFilter(cat: String) {
+        filterCategory = cat
+        updateFilterUI()
+        refilter()
+    }
+
+    private fun updateFilterUI() {
+        val chipGroup = findViewById<ChipGroup>(R.id.chipGroupFilters)
+        val filterScroll = findViewById<HorizontalScrollView>(R.id.filter_scroll_view)
+        val categoryBar = findViewById<LinearLayout>(R.id.category_bar)
+
+        chipGroup.removeAllViews()
+
+        fun addChip(text: String, onRemove: () -> Unit) {
+            val chip = Chip(this)
+            chip.text = text
+            chip.isCloseIconVisible = true
+            chip.chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#F0CDBC"))
+            chip.setTextColor(Color.BLACK)
+            chip.setOnCloseIconClickListener {
+                onRemove()
+                updateFilterUI()
+                refilter()
+            }
+            chipGroup.addView(chip)
+        }
+
+        filterCategory?.let { addChip(it) { filterCategory = null } }
+        filterCondition?.let { addChip(it) { filterCondition = null } }
+        filterLocation?.let { addChip(it) { filterLocation = null } }
+
+        if (filterMinPrice != null || filterMaxPrice != null) {
+            val priceText = "Price: ${filterMinPrice?.toInt() ?: 0} - ${filterMaxPrice?.toInt() ?: "Max"}"
+            addChip(priceText) {
+                filterMinPrice = null
+                filterMaxPrice = null
             }
         }
 
-        // Update Adapter
-        adAdapter.updateList(filteredList)
+        if (chipGroup.childCount > 0) {
+            filterScroll.visibility = View.VISIBLE
+            categoryBar.visibility = View.GONE
+        } else {
+            filterScroll.visibility = View.GONE
+            categoryBar.visibility = View.VISIBLE
+        }
+    }
+
+    private fun refilter() {
+        val filtered = ArrayList<Ad>()
+        val queryLower = searchQuery.lowercase(Locale.getDefault())
+
+        for (ad in fullAdList) {
+            var matches = true
+            if (searchQuery.isNotEmpty()) {
+                if (!ad.title.lowercase().contains(queryLower) &&
+                    !ad.location.lowercase().contains(queryLower)) {
+                    matches = false
+                }
+            }
+            if (filterCategory != null && !ad.category.contains(filterCategory!!, true)) matches = false
+            if (filterCondition != null && !ad.condition.equals(filterCondition, true)) matches = false
+            if (filterMinPrice != null && ad.price < filterMinPrice!!) matches = false
+            if (filterMaxPrice != null && ad.price > filterMaxPrice!!) matches = false
+            if (filterLocation != null && !ad.location.contains(filterLocation!!, true)) matches = false
+
+            if (matches) filtered.add(ad)
+        }
+        adAdapter.updateList(filtered)
     }
 
     private fun loadAdsFromLocalDB() {
         fullAdList.clear()
+        val currentUserEmail = auth.currentUser?.email ?: ""
+        val userId = getUserIdByEmail(currentUserEmail)
+
         val db = dbHelper.readableDatabase
+        // UPDATED QUERY: Check saved_ads table to set isSaved flag
         val query = """
-            SELECT a.ad_id, a.title, a.price, a.location_address, a.created_at, a.is_synced, i.image_url
+            SELECT a.ad_id, a.title, a.price, a.location_address, a.created_at, a.is_synced, i.image_url, a.category, a.condition_type,
+            (SELECT count(*) FROM saved_ads s WHERE s.ad_id = a.ad_id AND s.user_id = $userId AND s.is_deleted = 0) as is_saved
             FROM ${ListItDbHelper.TABLE_ADS} a
             LEFT JOIN ${ListItDbHelper.TABLE_AD_IMAGES} i ON a.ad_id = i.ad_id AND i.is_primary = 1
             ORDER BY a.created_at DESC
@@ -153,26 +348,53 @@ class Home : AppCompatActivity() {
                     location = cursor.getString(3),
                     date = cursor.getString(4),
                     isSynced = cursor.getInt(5),
-                    imagePath = cursor.getString(6)
+                    imagePath = cursor.getString(6),
+                    category = cursor.getString(7),
+                    condition = cursor.getString(8),
+                    isSaved = cursor.getInt(9) > 0 // New Logic
                 )
                 fullAdList.add(ad)
             } while (cursor.moveToNext())
         }
         cursor.close()
 
-        // Initial state: Display everything
         displayedAdList.clear()
         displayedAdList.addAll(fullAdList)
         adAdapter.notifyDataSetChanged()
     }
 
-    // ... (Keep syncAdsFromServer, syncDirtyAdsToServer, syncAllUsers, uploadSingleAd exactly as they were) ...
+    private fun getUserIdByEmail(email: String): Int {
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery("SELECT user_id FROM users WHERE email = ?", arrayOf(email))
+        var id = -1
+        if (cursor.moveToFirst()) {
+            id = cursor.getInt(0)
+        }
+        cursor.close()
+        return id
+    }
+
+    private fun getLatestAdTimestamp(): String {
+        val db = dbHelper.readableDatabase
+        var lastDate = "2000-01-01 00:00:00"
+        val cursor = db.rawQuery("SELECT created_at FROM ads WHERE is_synced = 1 ORDER BY created_at DESC LIMIT 1", null)
+        if (cursor.moveToFirst()) {
+            lastDate = cursor.getString(0)
+        }
+        cursor.close()
+        return lastDate
+    }
+
+    // ... (Keep syncAdsFromServer, syncDirtyAdsToServer, uploadSingleAd, syncAllUsers, isNetworkAvailable same as before) ...
+    // To save space, assuming previous sync functions are here.
+    // Just ensure syncAdsFromServer calls loadAdsFromLocalDB() at the end.
 
     private fun syncAdsFromServer() {
         val queue = Volley.newRequestQueue(this)
         val url = Constants.BASE_URL + "get_ads.php"
+        val lastSyncDate = getLatestAdTimestamp()
 
-        val request = StringRequest(Request.Method.GET, url,
+        val request = object : StringRequest(Request.Method.POST, url,
             { response ->
                 try {
                     val jsonStartIndex = response.indexOf("{")
@@ -223,9 +445,18 @@ class Home : AppCompatActivity() {
                         }
                     }
                 } catch (e: Exception) { e.printStackTrace() }
+                swipeRefresh.isRefreshing = false
             },
-            { error -> Log.e("Home", "Sync Error: ${error.message}") }
-        )
+            { error ->
+                swipeRefresh.isRefreshing = false
+            }
+        ) {
+            override fun getParams(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["last_sync"] = lastSyncDate
+                return params
+            }
+        }
         queue.add(request)
     }
 
@@ -244,7 +475,6 @@ class Home : AppCompatActivity() {
                 val price = cursor.getDouble(cursor.getColumnIndexOrThrow("price"))
                 val condition = cursor.getString(cursor.getColumnIndexOrThrow("condition_type"))
                 val location = cursor.getString(cursor.getColumnIndexOrThrow("location_address"))
-
                 val lat = cursor.getDouble(cursor.getColumnIndexOrThrow("lat"))
                 val lng = cursor.getDouble(cursor.getColumnIndexOrThrow("lng"))
 
@@ -266,11 +496,20 @@ class Home : AppCompatActivity() {
         val url = Constants.BASE_URL + "post_ad.php"
         val stringRequest = object : StringRequest(Request.Method.POST, url,
             { response ->
-                if (response.contains("success")) {
-                    val db = dbHelper.writableDatabase
-                    val values = ContentValues().apply { put("is_synced", 1) }
-                    db.update(ListItDbHelper.TABLE_ADS, values, "ad_id = ?", arrayOf(localAdId.toString()))
-                }
+                try {
+                    val jsonStartIndex = response.indexOf("{")
+                    if (jsonStartIndex != -1) {
+                        val cleanResponse = response.substring(jsonStartIndex)
+                        val json = JSONObject(cleanResponse)
+                        if (json.getString("status") == "success") {
+                            val serverAdId = json.getInt("ad_id")
+                            val db = dbHelper.writableDatabase
+                            db.execSQL("UPDATE ad_images SET ad_id = $serverAdId WHERE ad_id = $localAdId")
+                            db.execSQL("UPDATE ads SET ad_id = $serverAdId, is_synced = 1 WHERE ad_id = $localAdId")
+                            loadAdsFromLocalDB()
+                        }
+                    }
+                } catch (e: Exception) { Log.e("Home", "Sync Error: ${e.message}") }
             },
             { error -> Log.e("Home", "Failed to sync ad $localAdId") }
         ) {
@@ -295,7 +534,7 @@ class Home : AppCompatActivity() {
                             if (bitmap != null) {
                                 val baos = ByteArrayOutputStream()
                                 bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, baos)
-                                val base64 = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT)
+                                val base64 = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.DEFAULT)
                                 imagesJsonArray.put(base64)
                             }
                         }
@@ -305,14 +544,12 @@ class Home : AppCompatActivity() {
                 return params
             }
         }
-        stringRequest.retryPolicy = DefaultRetryPolicy(30000, 0, 1f)
         queue.add(stringRequest)
     }
 
     private fun syncAllUsers() {
         val queue = Volley.newRequestQueue(this)
         val url = Constants.BASE_URL + "get_users.php"
-
         val request = StringRequest(Request.Method.GET, url,
             { response ->
                 try {
@@ -323,11 +560,9 @@ class Home : AppCompatActivity() {
                         if (json.getString("status") == "success") {
                             val usersArray = json.getJSONArray("data")
                             val db = dbHelper.writableDatabase
-
                             for (i in 0 until usersArray.length()) {
                                 val obj = usersArray.getJSONObject(i)
                                 val serverUserId = obj.getInt("user_id")
-
                                 val values = ContentValues().apply {
                                     put("user_id", serverUserId)
                                     put("full_name", obj.getString("full_name"))
@@ -347,8 +582,6 @@ class Home : AppCompatActivity() {
     }
 
     private fun setupNavigation() {
-        findViewById<ImageView>(R.id.cars).setOnClickListener { startActivity(Intent(this, Category_Car::class.java)) }
-        findViewById<LinearLayout>(R.id.category_bar).setOnClickListener { startActivity(Intent(this, Filters::class.java)) }
         findViewById<ImageView>(R.id.home_ic).setOnClickListener { }
         findViewById<ImageView>(R.id.chat_ic).setOnClickListener { startActivity(Intent(this, Buying::class.java)) }
         findViewById<ImageView>(R.id.add_ic)?.setOnClickListener { startActivity(Intent(this, PostAd::class.java)) }

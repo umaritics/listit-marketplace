@@ -62,6 +62,7 @@
 
             <!-- Car -->
             <LinearLayout
+                android:id="@+id/filter_cat_car"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
@@ -89,6 +90,7 @@
 
             <!-- Bike -->
             <LinearLayout
+                android:id="@+id/filter_cat_bike"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
@@ -96,13 +98,13 @@
                 android:gravity="center_vertical"
                 android:padding="10dp"
                 android:layout_margin="6dp"
-                android:background="@drawable/filter_button_selected_bg">
+                android:background="@drawable/filter_button_bg">
 
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_bike"
-                    app:tint="#FFFFFF"
+                    app:tint="@color/black"
                     android:contentDescription="Bike" />
 
                 <TextView
@@ -110,12 +112,13 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:text="Bike"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#000000"
                     android:textStyle="bold" />
             </LinearLayout>
 
             <!-- Housing -->
             <LinearLayout
+                android:id="@+id/filter_cat_housing"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
@@ -129,7 +132,6 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_property"
-
                     app:tint="@color/black"
                     android:contentDescription="Housing" />
 
@@ -137,13 +139,14 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="Housing"
+                    android:text="Property"
                     android:textColor="#000000"
                     android:textStyle="bold" />
             </LinearLayout>
 
             <!-- Mobile -->
             <LinearLayout
+                android:id="@+id/filter_cat_mobile"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
@@ -171,6 +174,7 @@
 
             <!-- Cooking -->
             <LinearLayout
+                android:id="@+id/filter_cat_furniture"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
@@ -191,13 +195,14 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="Cooking"
+                    android:text="Furniture"
                     android:textColor="#000000"
                     android:textStyle="bold" />
             </LinearLayout>
 
             <!-- Community -->
             <LinearLayout
+                android:id="@+id/filter_cat_fashion"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
@@ -218,7 +223,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="Community"
+                    android:text="Fashion"
                     android:textColor="#000000"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -260,8 +265,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
                 android:text="Used"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#FF913C" />
+                android:textColor="@color/black"
+                android:backgroundTint="#FFFFFF" />
         </LinearLayout>
 
         <!-- Price -->
@@ -286,15 +291,17 @@
                 android:background="@drawable/edittext_bg">
 
                 <EditText
+                    android:id="@+id/rs_min"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Min"
                     android:padding="10dp"
+                    android:inputType="number"
                     android:background="@android:color/transparent"
-                    android:layout_toStartOf="@id/rs_min" />
+                    android:layout_toStartOf="@id/rs_min_txt" />
 
                 <TextView
-                    android:id="@+id/rs_min"
+                    android:id="@+id/rs_min_txt"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Rs"
@@ -319,15 +326,17 @@
                 android:background="@drawable/edittext_bg">
 
                 <EditText
+                    android:id="@+id/rs_max"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Max"
                     android:padding="10dp"
+                    android:inputType="number"
                     android:background="@android:color/transparent"
-                    android:layout_toStartOf="@id/rs_max" />
+                    android:layout_toStartOf="@id/rs_max_txt" />
 
                 <TextView
-                    android:id="@+id/rs_max"
+                    android:id="@+id/rs_max_txt"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Rs"
@@ -337,45 +346,6 @@
                     android:layout_centerVertical="true"
                     android:layout_marginEnd="8dp" />
             </RelativeLayout>
-        </LinearLayout>
-
-        <!-- Year -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Year"
-            android:textStyle="bold"
-            android:textColor="#FF6F00"
-            android:layout_marginTop="16dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:weightSum="2">
-
-            <EditText
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:background="@drawable/edittext_bg"
-                android:hint="Min"
-                android:padding="10dp" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="to"
-                android:textColor="#000000"
-                android:textStyle="bold"
-                android:layout_marginHorizontal="8dp" />
-            <EditText
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_marginStart="10dp"
-                android:layout_height="wrap_content"
-                android:background="@drawable/edittext_bg"
-                android:hint="Max"
-                android:padding="10dp" />
         </LinearLayout>
 
         <!-- Location -->
@@ -394,37 +364,6 @@
             android:hint="Enter Location"
             android:background="@drawable/edittext_bg"
             android:padding="10dp" />
-
-        <!-- Sort By -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Sort By"
-            android:textStyle="bold"
-            android:textColor="#FF6F00"
-            android:layout_marginTop="16dp" />
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="8dp">
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Ascending"
-                android:backgroundTint="#FF913C"
-                android:textColor="#FFFFFF" />
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Descending"
-                android:layout_marginStart="12dp"
-                android:backgroundTint="#FFFFFF"
-                android:textColor="#000000" />
-        </LinearLayout>
 
         <!-- Save Button -->
         <com.google.android.material.button.MaterialButton
