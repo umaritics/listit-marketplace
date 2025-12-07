@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/rounded_orange_border"
+    android:backgroundTint="@color/light_orange"
+    android:layout_marginHorizontal="10dp"
+    android:layout_marginBottom="10dp"
+    android:padding="10dp">
+
+    <ImageView
+        android:id="@+id/chat_row_pfp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:src="@drawable/ic_profile_placeholder"
+        android:background="@drawable/user_pfp"/>
+
+    <TextView
+        android:id="@+id/chat_row_username"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/chat_row_pfp"
+        android:layout_marginStart="15dp"
+        android:text="Username"
+        android:fontFamily="@font/rubik_bold"
+        android:textSize="16sp"
+        android:textColor="@color/black" />
+
+    <TextView
+        android:id="@+id/chat_row_last_msg"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/chat_row_pfp"
+        android:layout_below="@id/chat_row_username"
+        android:text="Tap to chat"
+        android:layout_marginStart="15dp"
+        android:fontFamily="@font/rubik_regular"
+        android:textColor="@color/grey" />
+
+</RelativeLayout>
