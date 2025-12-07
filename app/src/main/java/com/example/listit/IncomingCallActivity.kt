@@ -22,13 +22,26 @@ class IncomingCallActivity : AppCompatActivity() {
     private var channelName = ""
     private var callerName = ""
 
-    // Auth to find our own DB node
+    // --- ADDED: Flag to distinguish between 'Answered' and 'Swiped Away' ---
+    private var isCallActionTaken = false
+    private lateinit var dbHelper: ListItDbHelper
+    private var currentUserId = -1
+    // ----------------------------------------------------------------------
+
     private val auth = FirebaseAuth.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 1. Screen Wake Logic (Keep this)
+        // --- 1. Init Helper & ID for cleanup ---
+        dbHelper = ListItDbHelper(this)
+        val email = auth.currentUser?.email
+        if (email != null) {
+            currentUserId = getUserIdByEmail(email)
+        }
+        // ---------------------------------------
+
+        // Screen Wake Logic
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -46,7 +59,7 @@ class IncomingCallActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_incoming_call)
 
-        // 2. Clear Notification
+        // Clear Notification
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(111)
 
@@ -55,7 +68,7 @@ class IncomingCallActivity : AppCompatActivity() {
 
         findViewById<TextView>(R.id.tv_caller_name).text = callerName
 
-        // 3. Play Ringtone
+        // Play Ringtone
         try {
             val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
             mediaPlayer = MediaPlayer.create(this, ringtoneUri)
@@ -68,8 +81,9 @@ class IncomingCallActivity : AppCompatActivity() {
         // --- ACCEPT BUTTON ---
         findViewById<ImageView>(R.id.btn_accept).setOnClickListener {
             stopRingtone()
+            isCallActionTaken = true // Mark as handled so onDestroy doesn't delete it
 
-            // A. Tell Database we Accepted (So caller knows)
+            // A. Tell Database we Accepted
             updateCallStatus("accepted")
 
             // B. Join Video
@@ -82,36 +96,50 @@ class IncomingCallActivity : AppCompatActivity() {
         // --- DECLINE BUTTON ---
         findViewById<ImageView>(R.id.btn_decline).setOnClickListener {
             stopRingtone()
+            isCallActionTaken = true // Mark as handled
 
-            // A. Tell Database we Rejected (So caller stops waiting)
-            updateCallStatus("rejected") // Or just removeValue()
+            // A. Tell Database we Rejected (Deletes node)
+            updateCallStatus("rejected")
 
             finish()
         }
     }
 
-    private fun updateCallStatus(status: String) {
-        val email = auth.currentUser?.email ?: return
-        // We need our OWN user ID because the call is stored under 'calls/{myUserId}'
-        // Since this is an async lookup, for speed we usually recommend passing userId in intent.
-        // But for now, we can query it or assume you have a helper.
-        // Ideally:
-        val dbHelper = ListItDbHelper(this)
-        val myUserId = getUserIdByEmail(email, dbHelper)
+    override fun onDestroy() {
+        stopRingtone()
+        super.onDestroy()
 
-        if (myUserId != -1) {
+        // --- CLEANUP IF SWIPED AWAY ---
+        // If the user didn't click Accept or Decline, but the activity is destroyed
+        // (e.g., Back button, Swipe away, App closed), we must delete the node
+        // so Home.kt doesn't keep ringing.
+        if (!isCallActionTaken) {
+            deleteCallNode()
+        }
+    }
+
+    private fun deleteCallNode() {
+        if (currentUserId != -1) {
             val db = FirebaseDatabase.getInstance("https://listit-749b1-default-rtdb.firebaseio.com/")
-            val ref = db.getReference("calls").child(myUserId.toString())
+            val ref = db.getReference("calls").child(currentUserId.toString())
+            ref.removeValue()
+        }
+    }
+
+    private fun updateCallStatus(status: String) {
+        if (currentUserId != -1) {
+            val db = FirebaseDatabase.getInstance("https://listit-749b1-default-rtdb.firebaseio.com/")
+            val ref = db.getReference("calls").child(currentUserId.toString())
 
             if (status == "rejected") {
-                ref.removeValue() // Delete the call node entirely
+                ref.removeValue()
             } else {
                 ref.child("status").setValue(status)
             }
         }
     }
 
-    private fun getUserIdByEmail(email: String, dbHelper: ListItDbHelper): Int {
+    private fun getUserIdByEmail(email: String): Int {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT user_id FROM users WHERE email = ?", arrayOf(email))
         var id = -1
@@ -126,10 +154,5 @@ class IncomingCallActivity : AppCompatActivity() {
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
-    }
-
-    override fun onDestroy() {
-        stopRingtone()
-        super.onDestroy()
     }
 }
