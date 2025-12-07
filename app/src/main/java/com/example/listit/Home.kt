@@ -1,10 +1,13 @@
 package com.example.listit
 
 import ListItDbHelper
+import android.app.Activity
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
@@ -13,6 +16,8 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.util.Base64
 import android.util.Log
+import android.view.View
+import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
@@ -23,10 +28,13 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Request
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import org.json.JSONArray
@@ -39,20 +47,39 @@ class Home : AppCompatActivity() {
 
     private lateinit var dbHelper: ListItDbHelper
     private lateinit var adAdapter: AdAdapter
+    private lateinit var swipeRefresh: SwipeRefreshLayout
 
-    // Two lists: one for display, one for backup (filtering)
     private val displayedAdList = ArrayList<Ad>()
     private val fullAdList = ArrayList<Ad>()
 
-    // VOICE SEARCH LAUNCHER
+    private var searchQuery: String = ""
+    private var filterCategory: String? = null
+    private var filterCondition: String? = null
+    private var filterMinPrice: Double? = null
+    private var filterMaxPrice: Double? = null
+    private var filterLocation: String? = null
+
+    private val filterLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+            val data = result.data!!
+
+            if (data.hasExtra("category")) filterCategory = data.getStringExtra("category")
+            if (data.hasExtra("condition")) filterCondition = data.getStringExtra("condition")
+            if (data.hasExtra("location")) filterLocation = data.getStringExtra("location")
+            if (data.hasExtra("minPrice")) filterMinPrice = data.getDoubleExtra("minPrice", 0.0)
+            if (data.hasExtra("maxPrice")) filterMaxPrice = data.getDoubleExtra("maxPrice", 0.0)
+
+            updateFilterUI()
+            refilter()
+        }
+    }
+
     private val speechLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK && result.data != null) {
             val spokenText: ArrayList<String> = result.data!!.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS) ?: arrayListOf()
             if (spokenText.isNotEmpty()) {
                 val query = spokenText[0]
-                // Set text in search bar (Note: setText triggers TextWatcher)
                 findViewById<TextInputEditText>(R.id.search_input).setText(query)
-                // filterAds(query) // Removed direct search call as requested
             }
         }
     }
@@ -69,7 +96,25 @@ class Home : AppCompatActivity() {
         adAdapter = AdAdapter(displayedAdList)
         recyclerView.adapter = adAdapter
 
-        // Load Data
+        swipeRefresh = findViewById(R.id.swipe_refresh)
+        swipeRefresh.setColorSchemeColors(Color.parseColor("#FF6F00"))
+
+        // UPDATED: Swipe Logic
+        swipeRefresh.setOnRefreshListener {
+            // 1. Always load local data first (shows offline posts immediately)
+            loadAdsFromLocalDB()
+
+            // 2. Then try to sync if online
+            if (isNetworkAvailable()) {
+                syncAdsFromServer()
+                syncDirtyAdsToServer()
+                syncAllUsers()
+            } else {
+                swipeRefresh.isRefreshing = false
+                Toast.makeText(this, "Showing local data (Offline)", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         loadAdsFromLocalDB()
 
         if (isNetworkAvailable()) {
@@ -78,33 +123,32 @@ class Home : AppCompatActivity() {
             syncAllUsers()
         }
 
-        // --- SEARCH LOGIC ---
         val searchLayout = findViewById<TextInputLayout>(R.id.search_bar)
         val searchInput = findViewById<TextInputEditText>(R.id.search_input)
 
-        // 1. Voice Icon Click
         searchLayout.setEndIconOnClickListener {
+            val intent = Intent(this, Filters::class.java)
+            filterLauncher.launch(intent)
+        }
+
+        searchLayout.setStartIconOnClickListener {
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-            intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Say something (e.g. 'Toyota')")
-            try {
-                speechLauncher.launch(intent)
-            } catch (e: Exception) {
-                Toast.makeText(this, "Voice search not supported", Toast.LENGTH_SHORT).show()
-            }
+            try { speechLauncher.launch(intent) } catch (e: Exception) {}
         }
 
-        // 2. Text Typing
         searchInput.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                // filterAds(s.toString()) // Commented out: Search logic to be implemented later
+                searchQuery = s.toString().trim()
+                refilter()
             }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
 
         setupNavigation()
+        setupCategoryBar()
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -113,31 +157,99 @@ class Home : AppCompatActivity() {
         }
     }
 
-    private fun filterAds(query: String) {
-        val filteredList = ArrayList<Ad>()
+    // UPDATED: Refresh list when returning from PostAd or other screens
+    override fun onResume() {
+        super.onResume()
+        loadAdsFromLocalDB()
+    }
 
-        if (query.isEmpty()) {
-            filteredList.addAll(fullAdList)
-        } else {
-            val lowercaseQuery = query.lowercase(Locale.getDefault())
-            for (ad in fullAdList) {
-                // Filter by Title, Category, or Location
-                if (ad.title.lowercase(Locale.getDefault()).contains(lowercaseQuery) ||
-                    ad.location.lowercase(Locale.getDefault()).contains(lowercaseQuery)) {
-                    filteredList.add(ad)
-                }
+    private fun setupCategoryBar() {
+        findViewById<LinearLayout>(R.id.cat_cars).setOnClickListener { setCategoryFilter("Car") }
+        findViewById<LinearLayout>(R.id.cat_mobile).setOnClickListener { setCategoryFilter("Mobile") }
+        findViewById<LinearLayout>(R.id.cat_property).setOnClickListener { setCategoryFilter("Property") }
+        findViewById<LinearLayout>(R.id.cat_bikes).setOnClickListener { setCategoryFilter("Bike") }
+    }
+
+    private fun setCategoryFilter(cat: String) {
+        filterCategory = cat
+        updateFilterUI()
+        refilter()
+    }
+
+    private fun updateFilterUI() {
+        val chipGroup = findViewById<ChipGroup>(R.id.chipGroupFilters)
+        val filterScroll = findViewById<HorizontalScrollView>(R.id.filter_scroll_view)
+        val categoryBar = findViewById<LinearLayout>(R.id.category_bar)
+
+        chipGroup.removeAllViews()
+
+        fun addChip(text: String, onRemove: () -> Unit) {
+            val chip = Chip(this)
+            chip.text = text
+            chip.isCloseIconVisible = true
+            chip.chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#F0CDBC"))
+            chip.setTextColor(Color.BLACK)
+
+            chip.setOnCloseIconClickListener {
+                onRemove()
+                updateFilterUI()
+                refilter()
+            }
+            chipGroup.addView(chip)
+        }
+
+        filterCategory?.let { addChip(it) { filterCategory = null } }
+        filterCondition?.let { addChip(it) { filterCondition = null } }
+        filterLocation?.let { addChip(it) { filterLocation = null } }
+
+        if (filterMinPrice != null || filterMaxPrice != null) {
+            val priceText = "Price: ${filterMinPrice?.toInt() ?: 0} - ${filterMaxPrice?.toInt() ?: "Max"}"
+            addChip(priceText) {
+                filterMinPrice = null
+                filterMaxPrice = null
             }
         }
 
-        // Update Adapter
-        adAdapter.updateList(filteredList)
+        if (chipGroup.childCount > 0) {
+            filterScroll.visibility = View.VISIBLE
+            categoryBar.visibility = View.GONE
+        } else {
+            filterScroll.visibility = View.GONE
+            categoryBar.visibility = View.VISIBLE
+        }
+    }
+
+    private fun refilter() {
+        val filtered = ArrayList<Ad>()
+        val queryLower = searchQuery.lowercase(Locale.getDefault())
+
+        for (ad in fullAdList) {
+            var matches = true
+
+            if (searchQuery.isNotEmpty()) {
+                if (!ad.title.lowercase().contains(queryLower) &&
+                    !ad.location.lowercase().contains(queryLower)) {
+                    matches = false
+                }
+            }
+
+            if (filterCategory != null && !ad.category.contains(filterCategory!!, true)) matches = false
+            if (filterCondition != null && !ad.condition.equals(filterCondition, true)) matches = false
+            if (filterMinPrice != null && ad.price < filterMinPrice!!) matches = false
+            if (filterMaxPrice != null && ad.price > filterMaxPrice!!) matches = false
+            if (filterLocation != null && !ad.location.contains(filterLocation!!, true)) matches = false
+
+            if (matches) filtered.add(ad)
+        }
+
+        adAdapter.updateList(filtered)
     }
 
     private fun loadAdsFromLocalDB() {
         fullAdList.clear()
         val db = dbHelper.readableDatabase
         val query = """
-            SELECT a.ad_id, a.title, a.price, a.location_address, a.created_at, a.is_synced, i.image_url
+            SELECT a.ad_id, a.title, a.price, a.location_address, a.created_at, a.is_synced, i.image_url, a.category, a.condition_type
             FROM ${ListItDbHelper.TABLE_ADS} a
             LEFT JOIN ${ListItDbHelper.TABLE_AD_IMAGES} i ON a.ad_id = i.ad_id AND i.is_primary = 1
             ORDER BY a.created_at DESC
@@ -153,26 +265,37 @@ class Home : AppCompatActivity() {
                     location = cursor.getString(3),
                     date = cursor.getString(4),
                     isSynced = cursor.getInt(5),
-                    imagePath = cursor.getString(6)
+                    imagePath = cursor.getString(6),
+                    category = cursor.getString(7),
+                    condition = cursor.getString(8)
                 )
                 fullAdList.add(ad)
             } while (cursor.moveToNext())
         }
         cursor.close()
 
-        // Initial state: Display everything
         displayedAdList.clear()
         displayedAdList.addAll(fullAdList)
         adAdapter.notifyDataSetChanged()
     }
 
-    // ... (Keep syncAdsFromServer, syncDirtyAdsToServer, syncAllUsers, uploadSingleAd exactly as they were) ...
+    private fun getLatestAdTimestamp(): String {
+        val db = dbHelper.readableDatabase
+        var lastDate = "2000-01-01 00:00:00"
+        val cursor = db.rawQuery("SELECT created_at FROM ads WHERE is_synced = 1 ORDER BY created_at DESC LIMIT 1", null)
+        if (cursor.moveToFirst()) {
+            lastDate = cursor.getString(0)
+        }
+        cursor.close()
+        return lastDate
+    }
 
     private fun syncAdsFromServer() {
         val queue = Volley.newRequestQueue(this)
         val url = Constants.BASE_URL + "get_ads.php"
+        val lastSyncDate = getLatestAdTimestamp()
 
-        val request = StringRequest(Request.Method.GET, url,
+        val request = object : StringRequest(Request.Method.POST, url,
             { response ->
                 try {
                     val jsonStartIndex = response.indexOf("{")
@@ -223,9 +346,19 @@ class Home : AppCompatActivity() {
                         }
                     }
                 } catch (e: Exception) { e.printStackTrace() }
+                swipeRefresh.isRefreshing = false
             },
-            { error -> Log.e("Home", "Sync Error: ${error.message}") }
-        )
+            { error ->
+                Log.e("Home", "Sync Error: ${error.message}")
+                swipeRefresh.isRefreshing = false
+            }
+        ) {
+            override fun getParams(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["last_sync"] = lastSyncDate
+                return params
+            }
+        }
         queue.add(request)
     }
 
@@ -266,10 +399,27 @@ class Home : AppCompatActivity() {
         val url = Constants.BASE_URL + "post_ad.php"
         val stringRequest = object : StringRequest(Request.Method.POST, url,
             { response ->
-                if (response.contains("success")) {
-                    val db = dbHelper.writableDatabase
-                    val values = ContentValues().apply { put("is_synced", 1) }
-                    db.update(ListItDbHelper.TABLE_ADS, values, "ad_id = ?", arrayOf(localAdId.toString()))
+                // PARSE RESPONSE TO GET SERVER ID
+                try {
+                    val jsonStartIndex = response.indexOf("{")
+                    if (jsonStartIndex != -1) {
+                        val cleanResponse = response.substring(jsonStartIndex)
+                        val json = JSONObject(cleanResponse)
+
+                        if (json.getString("status") == "success") {
+                            val serverAdId = json.getInt("ad_id")
+                            val db = dbHelper.writableDatabase
+
+                            // ID SWAP: Replace Local ID with Server ID
+                            db.execSQL("UPDATE ad_images SET ad_id = $serverAdId WHERE ad_id = $localAdId")
+                            db.execSQL("UPDATE ads SET ad_id = $serverAdId, is_synced = 1 WHERE ad_id = $localAdId")
+
+                            Log.d("Home", "Synced Ad Local:$localAdId -> Server:$serverAdId")
+                            loadAdsFromLocalDB() // Refresh UI with new ID
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("Home", "Sync Response Error: ${e.message}")
                 }
             },
             { error -> Log.e("Home", "Failed to sync ad $localAdId") }
@@ -347,8 +497,8 @@ class Home : AppCompatActivity() {
     }
 
     private fun setupNavigation() {
-        findViewById<ImageView>(R.id.cars).setOnClickListener { startActivity(Intent(this, Category_Car::class.java)) }
-        findViewById<LinearLayout>(R.id.category_bar).setOnClickListener { startActivity(Intent(this, Filters::class.java)) }
+        //findViewById<ImageView>(R.id.cars).setOnClickListener { startActivity(Intent(this, Category_Car::class.java)) }
+        //findViewById<LinearLayout>(R.id.category_bar).setOnClickListener { startActivity(Intent(this, Filters::class.java)) }
         findViewById<ImageView>(R.id.home_ic).setOnClickListener { }
         findViewById<ImageView>(R.id.chat_ic).setOnClickListener { startActivity(Intent(this, Buying::class.java)) }
         findViewById<ImageView>(R.id.add_ic)?.setOnClickListener { startActivity(Intent(this, PostAd::class.java)) }

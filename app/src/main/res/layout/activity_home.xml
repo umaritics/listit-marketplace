@@ -28,7 +28,7 @@
                 android:text="Listit" />
         </RelativeLayout>
 
-        <!-- Search Bar with Voice Icon -->
+        <!-- Search Bar with Filter Icon -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/search_bar"
             android:layout_below="@id/topbar"
@@ -43,12 +43,12 @@
             app:boxCornerRadiusBottomStart="12dp"
             app:boxCornerRadiusBottomEnd="12dp"
             app:boxStrokeWidth="0dp"
+            app:boxStrokeWidthFocused="0dp"
             app:hintEnabled="false"
             app:startIconTint="#FF6F00"
             app:startIconDrawable="@drawable/search_home"
-            app:endIconDrawable="@drawable/mic"
+            app:endIconDrawable="@drawable/filter_home"
             app:endIconTint="#FF6F00"
-            app:endIconScaleType="center"
             app:endIconMode="custom">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -64,122 +64,161 @@
                 android:paddingEnd="8dp" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Category Bar -->
+        <!-- HEADER CONTAINER: Wraps Filters & Categories -->
         <LinearLayout
-            android:id="@+id/category_bar"
-            android:layout_below="@id/search_bar"
+            android:id="@+id/dynamic_header_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:weightSum="4">
-            <!-- Cars -->
-            <LinearLayout
-                android:layout_width="0dp"
+            android:layout_below="@id/search_bar"
+            android:orientation="vertical"
+            android:layout_marginTop="20dp">
+
+            <!-- 1. APPLIED FILTERS CHIP GROUP (Hidden by default) -->
+            <HorizontalScrollView
+                android:id="@+id/filter_scroll_view"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-                <ImageView
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:id="@+id/cars"
-                    android:background="@drawable/circle_bg_grey"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_car"/>
-                <TextView
+                android:layout_marginHorizontal="20dp"
+                android:scrollbars="none"
+                android:visibility="gone">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupFilters"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:id="@+id/carsText"
-                    android:text="@string/cars"
-                    android:textColor="@color/black"
-                    android:textStyle="bold"
-                    android:layout_marginTop="6dp" />
-            </LinearLayout>
-            <!-- Mobile -->
+                    app:singleLine="true"
+                    app:chipSpacing="8dp">
+                    <!-- Chips added via code -->
+                </com.google.android.material.chip.ChipGroup>
+            </HorizontalScrollView>
+
+            <!-- 2. DEFAULT CATEGORY BAR (Visible by default) -->
             <LinearLayout
-                android:layout_width="0dp"
+                android:id="@+id/category_bar"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-                <ImageView
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:background="@drawable/circle_bg_grey"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_mobile" />
-                <TextView
-                    android:layout_width="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:weightSum="4">
+                <!-- Cars -->
+                <LinearLayout
+                    android:id="@+id/cat_cars"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Mobile"
-                    android:textColor="@color/black"
-                    android:textStyle="bold"
-                    android:layout_marginTop="6dp" />
-            </LinearLayout>
-            <!-- Property -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-                <ImageView
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:background="@drawable/circle_bg_grey"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_property" />
-                <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+                    <ImageView
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:id="@+id/cars"
+                        android:background="@drawable/circle_bg_grey"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_car"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/carsText"
+                        android:text="@string/cars"
+                        android:textColor="@color/black"
+                        android:textStyle="bold"
+                        android:layout_marginTop="6dp" />
+                </LinearLayout>
+                <!-- Mobile -->
+                <LinearLayout
+                    android:id="@+id/cat_mobile"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Property"
-                    android:textColor="@color/black"
-                    android:textStyle="bold"
-                    android:layout_marginTop="6dp" />
-            </LinearLayout>
-            <!-- Bikes -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-                <ImageView
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
-                    android:background="@drawable/circle_bg_grey"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_bike"/>
-                <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+                    <ImageView
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:background="@drawable/circle_bg_grey"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_mobile" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Mobile"
+                        android:textColor="@color/black"
+                        android:textStyle="bold"
+                        android:layout_marginTop="6dp" />
+                </LinearLayout>
+                <!-- Property -->
+                <LinearLayout
+                    android:id="@+id/cat_property"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Bikes"
-                    android:textColor="@color/black"
-                    android:textStyle="bold"
-                    android:layout_marginTop="6dp" />
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+                    <ImageView
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:background="@drawable/circle_bg_grey"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_property" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Property"
+                        android:textColor="@color/black"
+                        android:textStyle="bold"
+                        android:layout_marginTop="6dp" />
+                </LinearLayout>
+                <!-- Bikes -->
+                <LinearLayout
+                    android:id="@+id/cat_bikes"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+                    <ImageView
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:background="@drawable/circle_bg_grey"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_bike"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Bikes"
+                        android:textColor="@color/black"
+                        android:textStyle="bold"
+                        android:layout_marginTop="6dp" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Divider -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:id="@+id/div"
             android:layout_marginHorizontal="20dp"
             android:background="@color/grey"
-            android:layout_below="@+id/category_bar"
+            android:layout_below="@+id/dynamic_header_container"
             android:layout_marginTop="10dp" />
 
-        <!-- RECYCLER VIEW FOR ADS -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_ads"
+        <!-- SWIPE REFRESH LAYOUT containing RecyclerView -->
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipe_refresh"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_below="@id/div"
-            android:layout_above="@id/bottom_nav"
-            android:clipToPadding="false"
-            android:padding="8dp" />
+            android:layout_above="@id/bottom_nav">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_ads"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:padding="8dp" />
+
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
         <!-- Bottom Nav -->
         <LinearLayout

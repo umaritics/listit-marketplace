@@ -50,7 +50,6 @@ class PostAd : AppCompatActivity() {
     private val selectedImages = ArrayList<Uri>()
     private var selectedCondition = "Used"
 
-    // Coordinates
     private var finalLat: Double = 0.0
     private var finalLng: Double = 0.0
 
@@ -66,7 +65,6 @@ class PostAd : AppCompatActivity() {
 
     private val POST_AD_URL = Constants.BASE_URL + "post_ad.php"
 
-    // 1. Map Activity Launcher
     private val pickLocationLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val data = result.data
@@ -74,8 +72,6 @@ class PostAd : AppCompatActivity() {
                 finalLat = data.getDoubleExtra("lat", 0.0)
                 finalLng = data.getDoubleExtra("lng", 0.0)
                 val address = data.getStringExtra("address") ?: ""
-
-                // Update UI with selected address
                 etLocation.setText(address)
             }
         }
@@ -106,7 +102,6 @@ class PostAd : AppCompatActivity() {
         val btnPost = findViewById<MaterialButton>(R.id.btn_post)
         etLocation = findViewById(R.id.et_location)
 
-        // 2. Click Listener for Map
         etLocation.isFocusable = false
         etLocation.isClickable = true
         etLocation.setOnClickListener {
@@ -183,7 +178,7 @@ class PostAd : AppCompatActivity() {
 
         val localImagePaths = saveImagesToInternalStorage(selectedImages)
 
-        // 3. Save to SQLite with Lat/Lng
+        // Save locally first (Gets a temp ID like '1')
         val localAdId = saveAdToSQLite(userId, category, title, desc, price, selectedCondition, location, localImagePaths)
 
         if (isNetworkAvailable()) {
@@ -210,7 +205,6 @@ class PostAd : AppCompatActivity() {
             put("status", "ACTIVE")
             put("is_synced", 0)
             put("created_at", currentDate)
-            // Save Coordinates
             put("lat", finalLat)
             put("lng", finalLng)
         }
@@ -249,7 +243,16 @@ class PostAd : AppCompatActivity() {
                         val json = JSONObject(cleanResponse)
 
                         if (json.getString("status") == "success") {
-                            markAdAsSynced(localAdId)
+                            // --- ID SWAP LOGIC (FIX FOR DUPLICATES) ---
+                            val serverAdId = json.getInt("ad_id")
+                            val db = dbHelper.writableDatabase
+
+                            // 1. Update Images to point to new ID
+                            db.execSQL("UPDATE ad_images SET ad_id = $serverAdId WHERE ad_id = $localAdId")
+
+                            // 2. Update Ad to new ID and mark Synced
+                            db.execSQL("UPDATE ads SET ad_id = $serverAdId, is_synced = 1 WHERE ad_id = $localAdId")
+
                             Toast.makeText(this, "Ad Posted Successfully!", Toast.LENGTH_SHORT).show()
                             finish()
                         } else {
@@ -282,31 +285,31 @@ class PostAd : AppCompatActivity() {
                 params["price"] = price.toString()
                 params["condition"] = condition
                 params["location"] = loc
-
-                // 4. Send Lat/Lng to Server
                 params["lat"] = finalLat.toString()
                 params["lng"] = finalLng.toString()
 
                 val imagesJsonArray = JSONArray()
                 for (path in paths) {
-                    val bitmap = BitmapFactory.decodeFile(path)
-                    val base64 = bitmapToString(bitmap)
-                    imagesJsonArray.put(base64)
+                    try {
+                        val file = File(path)
+                        if (file.exists()) {
+                            val bitmap = BitmapFactory.decodeFile(path)
+                            if (bitmap != null) {
+                                val baos = ByteArrayOutputStream()
+                                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, baos)
+                                val base64 = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT)
+                                imagesJsonArray.put(base64)
+                            }
+                        }
+                    } catch (e: Exception) { e.printStackTrace() }
                 }
                 params["images_json"] = imagesJsonArray.toString()
-
                 return params
             }
         }
 
         stringRequest.retryPolicy = DefaultRetryPolicy(30000, DefaultRetryPolicy.DEFAULT_MAX_RETRIES, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT)
         queue.add(stringRequest)
-    }
-
-    private fun markAdAsSynced(localAdId: Long) {
-        val db = dbHelper.writableDatabase
-        val values = ContentValues().apply { put("is_synced", 1) }
-        db.update(ListItDbHelper.TABLE_ADS, values, "ad_id = ?", arrayOf(localAdId.toString()))
     }
 
     private fun getUserIdByEmail(email: String): Int {
