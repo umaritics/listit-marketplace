@@ -94,7 +94,6 @@ class MessageAdapter(
     inner class SystemMessageHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val body: TextView = itemView.findViewById(R.id.text_message_body)
         fun bind(m: Message) {
-            // Display neatly: "OFFER: 500" -> "Offer Made: Rs 500"
             val price = m.messageText.removePrefix("OFFER:")
             body.text = "Offer Made: Rs $price"
         }

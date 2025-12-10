@@ -306,6 +306,26 @@ class Chat_message : AppCompatActivity() {
             }
         }
         queue.add(request)
+
+        // --- NEW: SEND PUSH NOTIFICATION ---
+        val targetId = getOtherUserIdFromChat(chatId, currentUserId)
+        if (targetId != -1) {
+            val token = getUserToken(targetId)
+            val myName = getCurrentUserName()
+            if (token.isNotEmpty()) {
+                lifecycleScope.launch {
+                    try {
+                        // Reusing the same generic notification function, or create a specific one for messages
+                        // Using 'save' type just to trigger the generic notification handler in MyFirebaseService
+                        PushNotificationSender.sendChatNotification(token, myName)
+                        // Ideally, create a new function in PushNotificationSender like 'sendChatMessageNotification'
+                        // that sends type="save" but title="New Message" and body=text
+                    } catch (e: Exception) {
+                        Log.e("Chat", "Failed to send push: ${e.message}")
+                    }
+                }
+            }
+        }
     }
 
     // --- VIDEO CALL LOGIC ---
@@ -332,14 +352,23 @@ class Chat_message : AppCompatActivity() {
         dbRef.setValue(callData)
             .addOnSuccessListener {
                 // 2. NOTIFICATION: Send FCM to wake up other phone
-                lifecycleScope.launch {
-                    PushNotificationSender.sendCallNotification(
-                        targetToken = targetToken,
-                        callerId = currentUserId,
-                        callerName = myName,
-                        callerImage = "",
-                        channelName = channelName
-                    )
+                val targetId = getOtherUserIdFromChat(chatId, currentUserId)
+                if (targetId != -1) {
+                    val token = getUserToken(targetId)
+                    val myName = getCurrentUserName()
+                    if (token.isNotEmpty()) {
+                        lifecycleScope.launch {
+                            try {
+                                // Reusing the same generic notification function, or create a specific one for messages
+                                // Using 'save' type just to trigger the generic notification handler in MyFirebaseService
+                                PushNotificationSender.sendCallNotification(token, myName)
+                                // Ideally, create a new function in PushNotificationSender like 'sendChatMessageNotification'
+                                // that sends type="save" but title="New Message" and body=text
+                            } catch (e: Exception) {
+                                Log.e("Chat", "Failed to send push: ${e.message}")
+                            }
+                        }
+                    }
                 }
                 // 3. UI: Open Video Activity
                 val intent = Intent(this, VideoCallActivity::class.java)

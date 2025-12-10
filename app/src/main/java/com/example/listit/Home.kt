@@ -1,25 +1,18 @@
 package com.example.listit
 
 import ListItDbHelper
-import android.Manifest
 import android.app.Activity
-import android.app.NotificationManager
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.res.ColorStateList
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.speech.RecognizerIntent
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Base64
 import android.util.Log
 import android.view.View
 import android.widget.HorizontalScrollView
@@ -29,8 +22,6 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
@@ -45,30 +36,25 @@ import com.google.android.material.chip.ChipGroup
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
-// --- ADDED FIREBASE IMPORTS ---
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-// ------------------------------
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.Locale
 
+
 class Home : AppCompatActivity() {
 
     private lateinit var dbHelper: ListItDbHelper
     private lateinit var adAdapter: AdAdapter
+    private var callListener: ValueEventListener? = null
     private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var auth: FirebaseAuth
-
-    // --- ADDED FOR CALL LISTENER ---
-    private var callListener: ValueEventListener? = null
-    private lateinit var callRef: DatabaseReference
-    // -------------------------------
 
     private val displayedAdList = ArrayList<Ad>()
     private val fullAdList = ArrayList<Ad>()
@@ -76,6 +62,7 @@ class Home : AppCompatActivity() {
     private var searchQuery: String = ""
     private var filterCategory: String? = null
     private var filterCondition: String? = null
+    private lateinit var callRef: DatabaseReference
     private var filterMinPrice: Double? = null
     private var filterMaxPrice: Double? = null
     private var filterLocation: String? = null
@@ -110,19 +97,8 @@ class Home : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_home)
 
-        // 1. Notification Permission (Android 13+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
-            }
-        }
-
         dbHelper = ListItDbHelper(this)
         auth = FirebaseAuth.getInstance()
-
-        // --- START LISTENING FOR CALLS ---
-        setupCallListener()
-        // ---------------------------------
 
         val recyclerView = findViewById<RecyclerView>(R.id.rv_ads)
         recyclerView.layoutManager = GridLayoutManager(this, 2)
@@ -134,6 +110,7 @@ class Home : AppCompatActivity() {
 
         swipeRefresh = findViewById(R.id.swipe_refresh)
         swipeRefresh.setColorSchemeColors(Color.parseColor("#FF6F00"))
+
         swipeRefresh.setOnRefreshListener {
             loadAdsFromLocalDB()
             if (isNetworkAvailable()) {
@@ -141,6 +118,7 @@ class Home : AppCompatActivity() {
                 syncDirtyAdsToServer()
                 syncSavedAdsToServer()
                 syncAllUsers()
+                setupCallListener()
             } else {
                 swipeRefresh.isRefreshing = false
                 Toast.makeText(this, "Showing local data (Offline)", Toast.LENGTH_SHORT).show()
@@ -190,69 +168,11 @@ class Home : AppCompatActivity() {
         }
     }
 
-    // --- NEW LOGIC: DIRECT RTDB LISTENER ---
-    // --- UPDATED LISTENER: PREVENTS LOOP ---
-    private fun setupCallListener() {
-        val currentUserEmail = auth.currentUser?.email ?: return
-        val currentUserId = getUserIdByEmail(currentUserEmail)
-
-        // Ensure we are connected to your specific DB instance
-        val db = FirebaseDatabase.getInstance("https://listit-749b1-default-rtdb.firebaseio.com/")
-        // Listen to "calls/{myUserId}"
-        callRef = db.getReference("calls").child(currentUserId.toString())
-
-        callListener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                if (snapshot.exists()) {
-                    val status = snapshot.child("status").getValue(String::class.java)
-                    val type = snapshot.child("type").getValue(String::class.java)
-
-                    // CHECK: Is it ringing?
-                    if (status == "ringing" && type == "video") {
-                        val callerName = snapshot.child("callerName").getValue(String::class.java) ?: "Unknown"
-                        val callerId = snapshot.child("callerId").getValue(String::class.java) ?: ""
-                        val channelName = snapshot.child("channelName").getValue(String::class.java) ?: ""
-
-                        Log.d("CallListener", "Call detected! Launching IncomingCallActivity")
-
-                        // 1. Launch Activity immediately
-                        val intent = Intent(this@Home, IncomingCallActivity::class.java)
-                        intent.putExtra("CALLER_NAME", callerName)
-                        intent.putExtra("CALLER_ID", callerId)
-                        intent.putExtra("CHANNEL_NAME", channelName)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                        startActivity(intent)
-
-                        // 2. CRITICAL FIX: Update status immediately to stop the loop
-                        // This prevents Home from launching the screen again
-                        snapshot.ref.child("status").setValue("ringing_received")
-                    }
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("CallListener", "Error listening for calls: ${error.message}")
-            }
-        }
-
-        callRef.addValueEventListener(callListener!!)
-    }
-
-    // REMOVE LISTENER WHEN APP CLOSES TO SAVE BATTERY
-    override fun onDestroy() {
-        super.onDestroy()
-        if (callListener != null && ::callRef.isInitialized) {
-            callRef.removeEventListener(callListener!!)
-        }
-    }
-    // ---------------------------------------
-
     override fun onResume() {
         super.onResume()
         loadAdsFromLocalDB()
     }
 
-    // --- HEART CLICK LOGIC ---
     private fun toggleSaveAd(ad: Ad, position: Int) {
         val currentUserEmail = auth.currentUser?.email
         if (currentUserEmail == null) {
@@ -453,24 +373,12 @@ class Home : AppCompatActivity() {
         return id
     }
 
-    private fun getLatestAdTimestamp(): String {
-        val db = dbHelper.readableDatabase
-        var lastDate = "2000-01-01 00:00:00"
-        val cursor = db.rawQuery("SELECT created_at FROM ads WHERE is_synced = 1 ORDER BY created_at DESC LIMIT 1", null)
-        if (cursor.moveToFirst()) {
-            lastDate = cursor.getString(0)
-        }
-        cursor.close()
-        return lastDate
-    }
-
-
+    // --- UPDATED SYNC LOGIC FOR EDITS ---
     private fun syncAdsFromServer() {
         val queue = Volley.newRequestQueue(this)
         val url = Constants.BASE_URL + "get_ads.php"
-        val lastSyncDate = getLatestAdTimestamp()
 
-        val request = object : StringRequest(Request.Method.POST, url,
+        val request = object : StringRequest(Request.Method.GET, url,
             { response ->
                 try {
                     val jsonStartIndex = response.indexOf("{")
@@ -485,38 +393,40 @@ class Home : AppCompatActivity() {
                                 val obj = adsArray.getJSONObject(i)
                                 val serverAdId = obj.getInt("ad_id")
 
-                                val check = db.rawQuery("SELECT ad_id FROM ads WHERE ad_id = ?", arrayOf(serverAdId.toString()))
-                                if (!check.moveToFirst()) {
-                                    val values = ContentValues().apply {
-                                        put("ad_id", serverAdId)
-                                        put("user_id", obj.getInt("user_id"))
-                                        put("category", obj.getString("category"))
-                                        put("title", obj.getString("title"))
-                                        put("description", obj.getString("description"))
-                                        put("price", obj.getDouble("price"))
-                                        put("condition_type", obj.getString("condition_type"))
-                                        put("location_address", obj.getString("location_address"))
-                                        put("status", obj.getString("status"))
-                                        put("lat", obj.optDouble("lat", 0.0))
-                                        put("lng", obj.optDouble("lng", 0.0))
-                                        put("is_synced", 1)
-                                        put("is_deleted", 0)
-                                        put("created_at", obj.getString("created_at"))
-                                    }
-                                    db.insert(ListItDbHelper.TABLE_ADS, null, values)
-
-                                    val imagesArray = obj.getJSONArray("images")
-                                    for (j in 0 until imagesArray.length()) {
-                                        val imgPath = imagesArray.getString(j)
-                                        val imgValues = ContentValues().apply {
-                                            put("ad_id", serverAdId)
-                                            put("image_url", imgPath)
-                                            put("is_primary", if (j == 0) 1 else 0)
-                                        }
-                                        db.insert(ListItDbHelper.TABLE_AD_IMAGES, null, imgValues)
-                                    }
+                                // FIX: Always REPLACE data (handles updates)
+                                val values = ContentValues().apply {
+                                    put("ad_id", serverAdId)
+                                    put("user_id", obj.getInt("user_id"))
+                                    put("category", obj.getString("category"))
+                                    put("title", obj.getString("title"))
+                                    put("description", obj.getString("description"))
+                                    put("price", obj.getDouble("price"))
+                                    put("condition_type", obj.getString("condition_type"))
+                                    put("location_address", obj.getString("location_address"))
+                                    put("status", obj.getString("status"))
+                                    put("lat", obj.optDouble("lat", 0.0))
+                                    put("lng", obj.optDouble("lng", 0.0))
+                                    put("is_synced", 1)
+                                    put("is_deleted", 0)
+                                    put("created_at", obj.getString("created_at"))
                                 }
-                                check.close()
+
+                                // Replace row in ADS table
+                                db.insertWithOnConflict(ListItDbHelper.TABLE_ADS, null, values, android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE)
+
+                                // FIX: Delete OLD images for this ad, then Insert NEW ones
+                                db.delete(ListItDbHelper.TABLE_AD_IMAGES, "ad_id = ?", arrayOf(serverAdId.toString()))
+
+                                val imagesArray = obj.getJSONArray("images")
+                                for (j in 0 until imagesArray.length()) {
+                                    val imgPath = imagesArray.getString(j)
+                                    val imgValues = ContentValues().apply {
+                                        put("ad_id", serverAdId)
+                                        put("image_url", imgPath)
+                                        put("is_primary", if (j == 0) 1 else 0)
+                                    }
+                                    db.insert(ListItDbHelper.TABLE_AD_IMAGES, null, imgValues)
+                                }
                             }
                             loadAdsFromLocalDB()
                         }
@@ -524,16 +434,8 @@ class Home : AppCompatActivity() {
                 } catch (e: Exception) { e.printStackTrace() }
                 swipeRefresh.isRefreshing = false
             },
-            { error ->
-                swipeRefresh.isRefreshing = false
-            }
-        ) {
-            override fun getParams(): MutableMap<String, String> {
-                val params = HashMap<String, String>()
-                params["last_sync"] = lastSyncDate
-                return params
-            }
-        }
+            { error -> swipeRefresh.isRefreshing = false }
+        ) { }
         queue.add(request)
     }
 
@@ -552,7 +454,6 @@ class Home : AppCompatActivity() {
                 val price = cursor.getDouble(cursor.getColumnIndexOrThrow("price"))
                 val condition = cursor.getString(cursor.getColumnIndexOrThrow("condition_type"))
                 val location = cursor.getString(cursor.getColumnIndexOrThrow("location_address"))
-
                 val lat = cursor.getDouble(cursor.getColumnIndexOrThrow("lat"))
                 val lng = cursor.getDouble(cursor.getColumnIndexOrThrow("lng"))
 
@@ -579,20 +480,15 @@ class Home : AppCompatActivity() {
                     if (jsonStartIndex != -1) {
                         val cleanResponse = response.substring(jsonStartIndex)
                         val json = JSONObject(cleanResponse)
-
                         if (json.getString("status") == "success") {
                             val serverAdId = json.getInt("ad_id")
                             val db = dbHelper.writableDatabase
-
                             db.execSQL("UPDATE ad_images SET ad_id = $serverAdId WHERE ad_id = $localAdId")
                             db.execSQL("UPDATE ads SET ad_id = $serverAdId, is_synced = 1 WHERE ad_id = $localAdId")
-
                             loadAdsFromLocalDB()
                         }
                     }
-                } catch (e: Exception) {
-                    Log.e("Home", "Sync Response Error: ${e.message}")
-                }
+                } catch (e: Exception) { Log.e("Home", "Sync Response Error: ${e.message}") }
             },
             { error -> Log.e("Home", "Failed to sync ad $localAdId") }
         ) {
@@ -607,17 +503,16 @@ class Home : AppCompatActivity() {
                 params["location"] = location
                 params["lat"] = lat.toString()
                 params["lng"] = lng.toString()
-
                 val imagesJsonArray = JSONArray()
                 for (path in imagePaths) {
                     try {
                         val file = File(path)
                         if (file.exists()) {
-                            val bitmap = BitmapFactory.decodeFile(path)
+                            val bitmap = android.graphics.BitmapFactory.decodeFile(path)
                             if (bitmap != null) {
                                 val baos = ByteArrayOutputStream()
                                 bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, baos)
-                                val base64 = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT)
+                                val base64 = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.DEFAULT)
                                 imagesJsonArray.put(base64)
                             }
                         }
@@ -627,14 +522,12 @@ class Home : AppCompatActivity() {
                 return params
             }
         }
-        stringRequest.retryPolicy = DefaultRetryPolicy(30000, 0, 1f)
         queue.add(stringRequest)
     }
 
     private fun syncAllUsers() {
         val queue = Volley.newRequestQueue(this)
         val url = Constants.BASE_URL + "get_users.php"
-
         val request = StringRequest(Request.Method.GET, url,
             { response ->
                 try {
@@ -645,11 +538,9 @@ class Home : AppCompatActivity() {
                         if (json.getString("status") == "success") {
                             val usersArray = json.getJSONArray("data")
                             val db = dbHelper.writableDatabase
-
                             for (i in 0 until usersArray.length()) {
                                 val obj = usersArray.getJSONObject(i)
                                 val serverUserId = obj.getInt("user_id")
-
                                 val values = ContentValues().apply {
                                     put("user_id", serverUserId)
                                     put("full_name", obj.getString("full_name"))
@@ -682,5 +573,57 @@ class Home : AppCompatActivity() {
         val network = connectivityManager.activeNetwork ?: return false
         val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
         return activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+    }
+    // Add this variable at the top of Home class
+    private var lastProcessedTimestamp: Long = 0L
+
+    private fun setupCallListener() {
+        val currentUserEmail = auth.currentUser?.email ?: return
+        val currentUserId = getUserIdByEmail(currentUserEmail)
+
+        val db = FirebaseDatabase.getInstance("https://listit-749b1-default-rtdb.firebaseio.com/")
+        callRef = db.getReference("calls").child(currentUserId.toString())
+
+        callListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    val status = snapshot.child("status").getValue(String::class.java)
+                    val type = snapshot.child("type").getValue(String::class.java)
+                    val timestamp = snapshot.child("timestamp").getValue(Long::class.java) ?: 0L
+
+                    // 1. DUPLICATE CHECK: If we already handled this specific call time, STOP.
+                    if (timestamp == lastProcessedTimestamp) {
+                        return
+                    }
+
+                    // 2. CHECK: Is it ringing?
+                    if (status == "ringing" && type == "video") {
+                        // Mark this timestamp as processed so we don't launch again for the same call
+                        lastProcessedTimestamp = timestamp
+
+                        val callerName = snapshot.child("callerName").getValue(String::class.java) ?: "Unknown"
+                        val callerId = snapshot.child("callerId").getValue(String::class.java) ?: ""
+                        val channelName = snapshot.child("channelName").getValue(String::class.java) ?: ""
+
+                        Log.d("CallListener", "Call detected! Launching IncomingCallActivity")
+
+                        val intent = Intent(this@Home, IncomingCallActivity::class.java)
+                        intent.putExtra("CALLER_NAME", callerName)
+                        intent.putExtra("CALLER_ID", callerId)
+                        intent.putExtra("CHANNEL_NAME", channelName)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        startActivity(intent)
+
+                        // 3. Update status immediately to prevent loop
+                        snapshot.ref.child("status").setValue("ringing_received")
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("CallListener", "Error listening for calls: ${error.message}")
+            }
+        }
+        callRef.addValueEventListener(callListener!!)
     }
 }
