@@ -15,7 +15,7 @@ object PushNotificationSender {
     private const val FCM_URL = "https://fcm.googleapis.com/v1/projects/listit-749b1/messages:send"
 
     private const val SERVICE_ACCOUNT_JSON = """
-Paste here
+
 """
 
 

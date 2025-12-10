@@ -1,14 +1,17 @@
 package com.example.listit
 
 import ListItDbHelper
+import android.Manifest
 import android.app.Activity
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.Build
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.text.Editable
@@ -22,12 +25,13 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Request
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
@@ -52,7 +56,6 @@ class Home : AppCompatActivity() {
 
     private lateinit var dbHelper: ListItDbHelper
     private lateinit var adAdapter: AdAdapter
-    private var callListener: ValueEventListener? = null
     private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var auth: FirebaseAuth
 
@@ -62,10 +65,14 @@ class Home : AppCompatActivity() {
     private var searchQuery: String = ""
     private var filterCategory: String? = null
     private var filterCondition: String? = null
-    private lateinit var callRef: DatabaseReference
     private var filterMinPrice: Double? = null
     private var filterMaxPrice: Double? = null
     private var filterLocation: String? = null
+
+    // Call Listener Variables
+    private var callListener: ValueEventListener? = null
+    private lateinit var callRef: DatabaseReference
+    private var lastProcessedTimestamp: Long = 0L
 
     private val filterLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK && result.data != null) {
@@ -97,8 +104,18 @@ class Home : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_home)
 
+        // Notification Permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+
         dbHelper = ListItDbHelper(this)
         auth = FirebaseAuth.getInstance()
+
+        // Init Call Listener
+        setupCallListener()
 
         val recyclerView = findViewById<RecyclerView>(R.id.rv_ads)
         recyclerView.layoutManager = GridLayoutManager(this, 2)
@@ -118,7 +135,6 @@ class Home : AppCompatActivity() {
                 syncDirtyAdsToServer()
                 syncSavedAdsToServer()
                 syncAllUsers()
-                setupCallListener()
             } else {
                 swipeRefresh.isRefreshing = false
                 Toast.makeText(this, "Showing local data (Offline)", Toast.LENGTH_SHORT).show()
@@ -171,6 +187,13 @@ class Home : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadAdsFromLocalDB()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::callRef.isInitialized && callListener != null) {
+            callRef.removeEventListener(callListener!!)
+        }
     }
 
     private fun toggleSaveAd(ad: Ad, position: Int) {
@@ -373,12 +396,14 @@ class Home : AppCompatActivity() {
         return id
     }
 
-    // --- UPDATED SYNC LOGIC FOR EDITS ---
+    // --- UPDATED: FULL SYNC + CLEANUP LOGIC ---
     private fun syncAdsFromServer() {
         val queue = Volley.newRequestQueue(this)
         val url = Constants.BASE_URL + "get_ads.php"
+        // Force full refresh by sending old date
+        val lastSyncDate = "2000-01-01 00:00:00"
 
-        val request = object : StringRequest(Request.Method.GET, url,
+        val request = object : StringRequest(Request.Method.POST, url,
             { response ->
                 try {
                     val jsonStartIndex = response.indexOf("{")
@@ -389,11 +414,15 @@ class Home : AppCompatActivity() {
                             val adsArray = json.getJSONArray("data")
                             val db = dbHelper.writableDatabase
 
+                            // Collection to track IDs present on server
+                            val serverAdIds = ArrayList<Int>()
+
                             for (i in 0 until adsArray.length()) {
                                 val obj = adsArray.getJSONObject(i)
                                 val serverAdId = obj.getInt("ad_id")
+                                serverAdIds.add(serverAdId)
 
-                                // FIX: Always REPLACE data (handles updates)
+                                // Always Replace/Insert (Handles Edits automatically)
                                 val values = ContentValues().apply {
                                     put("ad_id", serverAdId)
                                     put("user_id", obj.getInt("user_id"))
@@ -407,16 +436,14 @@ class Home : AppCompatActivity() {
                                     put("lat", obj.optDouble("lat", 0.0))
                                     put("lng", obj.optDouble("lng", 0.0))
                                     put("is_synced", 1)
-                                    put("is_deleted", 0)
+                                    // Use server value for is_deleted if available, else 0 (active)
+                                    put("is_deleted", obj.optInt("is_deleted", 0))
                                     put("created_at", obj.getString("created_at"))
                                 }
-
-                                // Replace row in ADS table
                                 db.insertWithOnConflict(ListItDbHelper.TABLE_ADS, null, values, android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE)
 
-                                // FIX: Delete OLD images for this ad, then Insert NEW ones
+                                // Re-insert images
                                 db.delete(ListItDbHelper.TABLE_AD_IMAGES, "ad_id = ?", arrayOf(serverAdId.toString()))
-
                                 val imagesArray = obj.getJSONArray("images")
                                 for (j in 0 until imagesArray.length()) {
                                     val imgPath = imagesArray.getString(j)
@@ -428,14 +455,32 @@ class Home : AppCompatActivity() {
                                     db.insert(ListItDbHelper.TABLE_AD_IMAGES, null, imgValues)
                                 }
                             }
+
+                            // --- PRUNING LOGIC: Delete local ads not in server response ---
+                            // Exception: Do NOT delete ads that are is_synced=0 (Offline drafts)
+                            if (serverAdIds.isNotEmpty()) {
+                                val idString = serverAdIds.joinToString(",")
+                                db.execSQL("DELETE FROM ${ListItDbHelper.TABLE_ADS} WHERE is_synced = 1 AND ad_id NOT IN ($idString)")
+                                // Cleanup orphaned images
+                                db.execSQL("DELETE FROM ${ListItDbHelper.TABLE_AD_IMAGES} WHERE ad_id NOT IN (SELECT ad_id FROM ${ListItDbHelper.TABLE_ADS})")
+                            }
+
                             loadAdsFromLocalDB()
                         }
                     }
                 } catch (e: Exception) { e.printStackTrace() }
                 swipeRefresh.isRefreshing = false
             },
-            { error -> swipeRefresh.isRefreshing = false }
-        ) { }
+            { error ->
+                swipeRefresh.isRefreshing = false
+            }
+        ) {
+            override fun getParams(): MutableMap<String, String> {
+                val params = HashMap<String, String>()
+                params["last_sync"] = lastSyncDate
+                return params
+            }
+        }
         queue.add(request)
     }
 
@@ -560,23 +605,6 @@ class Home : AppCompatActivity() {
         queue.add(request)
     }
 
-    private fun setupNavigation() {
-        findViewById<ImageView>(R.id.home_ic).setOnClickListener { }
-        findViewById<ImageView>(R.id.chat_ic).setOnClickListener { startActivity(Intent(this, Buying::class.java)) }
-        findViewById<ImageView>(R.id.add_ic)?.setOnClickListener { startActivity(Intent(this, PostAd::class.java)) }
-        findViewById<ImageView>(R.id.fav_ic).setOnClickListener { startActivity(Intent(this, MyAds::class.java)) }
-        findViewById<ImageView>(R.id.prof_ic).setOnClickListener { startActivity(Intent(this, Profile::class.java)) }
-    }
-
-    private fun isNetworkAvailable(): Boolean {
-        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = connectivityManager.activeNetwork ?: return false
-        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
-        return activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
-    }
-    // Add this variable at the top of Home class
-    private var lastProcessedTimestamp: Long = 0L
-
     private fun setupCallListener() {
         val currentUserEmail = auth.currentUser?.email ?: return
         val currentUserId = getUserIdByEmail(currentUserEmail)
@@ -591,21 +619,16 @@ class Home : AppCompatActivity() {
                     val type = snapshot.child("type").getValue(String::class.java)
                     val timestamp = snapshot.child("timestamp").getValue(Long::class.java) ?: 0L
 
-                    // 1. DUPLICATE CHECK: If we already handled this specific call time, STOP.
                     if (timestamp == lastProcessedTimestamp) {
                         return
                     }
 
-                    // 2. CHECK: Is it ringing?
                     if (status == "ringing" && type == "video") {
-                        // Mark this timestamp as processed so we don't launch again for the same call
                         lastProcessedTimestamp = timestamp
 
                         val callerName = snapshot.child("callerName").getValue(String::class.java) ?: "Unknown"
                         val callerId = snapshot.child("callerId").getValue(String::class.java) ?: ""
                         val channelName = snapshot.child("channelName").getValue(String::class.java) ?: ""
-
-                        Log.d("CallListener", "Call detected! Launching IncomingCallActivity")
 
                         val intent = Intent(this@Home, IncomingCallActivity::class.java)
                         intent.putExtra("CALLER_NAME", callerName)
@@ -614,7 +637,6 @@ class Home : AppCompatActivity() {
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         startActivity(intent)
 
-                        // 3. Update status immediately to prevent loop
                         snapshot.ref.child("status").setValue("ringing_received")
                     }
                 }
@@ -625,5 +647,20 @@ class Home : AppCompatActivity() {
             }
         }
         callRef.addValueEventListener(callListener!!)
+    }
+
+    private fun setupNavigation() {
+        findViewById<ImageView>(R.id.home_ic).setOnClickListener { }
+        findViewById<ImageView>(R.id.chat_ic).setOnClickListener { startActivity(Intent(this, Buying::class.java)) }
+        findViewById<ImageView>(R.id.add_ic)?.setOnClickListener { startActivity(Intent(this, PostAd::class.java)) }
+        findViewById<ImageView>(R.id.fav_ic).setOnClickListener { startActivity(Intent(this, MyAds::class.java)) }
+        findViewById<ImageView>(R.id.prof_ic).setOnClickListener { startActivity(Intent(this, Profile::class.java)) }
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
     }
 }
